@@ -127,11 +127,12 @@ server {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
 
     gzip on;
     gzip_comp_level 6;
     gzip_min_length 1024;
-    gzip_types text/css application/javascript application/json image/svg+xml text/plain;
+    gzip_types text/css application/javascript text/javascript application/json image/svg+xml text/plain;
 
     access_log /var/log/nginx/$DOMAIN.access.log;
     error_log  /var/log/nginx/$DOMAIN.error.log;
