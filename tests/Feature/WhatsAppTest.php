@@ -11,6 +11,7 @@ use App\Models\WhatsappTarget;
 use App\WhatsApp\MessageTemplates;
 use App\WhatsApp\Waha;
 use App\WhatsApp\WahaException;
+use App\WhatsApp\WhatsAppSender;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -277,4 +278,90 @@ test('the admin page explains clearly when WAHA is not running', function () {
         ->assertOk()
         ->assertSee('Cannot reach the WhatsApp service')
         ->assertSee('Not set up');
+});
+
+// --- One-to-one conversations ------------------------------------------------------------
+
+function signedWebhook($test, array $data)
+{
+    $body = json_encode($data);
+
+    return $test->call('POST', '/webhooks/waha', [], [], [], [
+        'CONTENT_TYPE' => 'application/json',
+        'HTTP_X_WEBHOOK_HMAC' => hash_hmac('sha512', $body, 'hook-secret'),
+    ], $body);
+}
+
+test('a member reply lands in their conversation, including from a hidden lid id', function () {
+    $grace = Member::factory()->create(['name' => 'Grace Wanjiru', 'phone' => '0712345678']);
+    $faith = Member::factory()->create(['name' => 'Faith Achieng', 'phone' => '0722000111']);
+    Http::fake([WAHA.'/api/default/lids/*' => Http::response(['lid' => '999@lid', 'pn' => '254722000111@c.us'])]);
+
+    signedWebhook($this, ['event' => 'message', 'payload' => ['id' => 'IN1', 'from' => '254712345678@c.us', 'fromMe' => false, 'body' => 'Amen, I will be there']])->assertOk();
+    signedWebhook($this, ['event' => 'message', 'payload' => ['id' => 'IN2', 'from' => '999@lid', 'fromMe' => false, 'body' => 'Received, thanks']])->assertOk();
+    signedWebhook($this, ['event' => 'message', 'payload' => ['id' => 'IN1', 'from' => '254712345678@c.us', 'fromMe' => false, 'body' => 'Amen, I will be there']]); // duplicate
+    signedWebhook($this, ['event' => 'message', 'payload' => ['id' => 'G1', 'from' => '120363@g.us', 'fromMe' => false, 'body' => 'group chatter']]); // group: ignored
+    signedWebhook($this, ['event' => 'message', 'payload' => ['id' => 'ME1', 'from' => '254712345678@c.us', 'fromMe' => true, 'body' => 'mine']]); // our own: ignored
+
+    expect(WhatsappMessage::where('direction', 'in')->count())->toBe(2)
+        ->and(WhatsappMessage::where('waha_id', 'IN1')->value('member_id'))->toBe($grace->id)
+        ->and(WhatsappMessage::where('waha_id', 'IN2')->value('member_id'))->toBe($faith->id)
+        ->and(WhatsappMessage::where('waha_id', 'IN2')->value('chat_id'))->toBe('999@lid');
+});
+
+test('messaging a member checks the number, shows typing, then sends', function () {
+    $member = Member::factory()->create(['phone' => '0712345678']);
+    Http::fake([
+        WAHA.'/api/contacts/check-exists*' => Http::response(['numberExists' => true, 'chatId' => '254712345678@c.us']),
+        WAHA.'/api/default/presence' => Http::response([]),
+        WAHA.'/api/sendText' => Http::response(['id' => 'OUT1']),
+    ]);
+
+    $log = app(WhatsAppSender::class)->sendToMember($member, 'Hello Grace');
+
+    expect($log->status)->toBe('sent')->and($log->chat_id)->toBe('254712345678@c.us')->and($log->waha_id)->toBe('OUT1');
+    Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/presence') && $r['presence'] === 'typing');
+    Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/api/sendText') && $r['chatId'] === '254712345678@c.us');
+});
+
+test('numbers not on whatsapp and new-contact limits get clear messages', function () {
+    $notOn = Member::factory()->create(['phone' => '0700000001']);
+    $limited = Member::factory()->create(['phone' => '0700000002']);
+    Http::fake([
+        WAHA.'/api/contacts/check-exists*' => fn (Request $r) => Http::response(str_contains($r->url(), '254700000001')
+            ? ['numberExists' => false]
+            : ['numberExists' => true, 'chatId' => '254700000002@c.us']),
+        WAHA.'/api/default/presence' => Http::response([]),
+        WAHA.'/api/sendText' => Http::response(['message' => 'server returned error 463'], 500),
+    ]);
+    $sender = app(WhatsAppSender::class);
+
+    expect($sender->sendToMember($notOn, 'hi')->error)->toContain('not on WhatsApp')
+        ->and($sender->sendToMember($limited, 'hi')->error)->toContain('temporarily limiting messages to new contacts');
+});
+
+test('admins see conversations, opening one marks it read, and can reply', function () {
+    $this->actingAs(User::factory()->create(['email' => 'admin@example.com']));
+    $member = Member::factory()->create(['name' => 'Grace Wanjiru', 'phone' => '0712345678']);
+    WhatsappMessage::create(['direction' => 'in', 'member_id' => $member->id, 'chat_id' => '254712345678@c.us', 'target_name' => 'Grace Wanjiru', 'kind' => 'chat', 'body' => 'Can I swap Sunday?', 'status' => 'received']);
+    Http::fake([
+        WAHA.'/api/default/presence' => Http::response([]),
+        WAHA.'/api/sendText' => Http::response(['id' => 'OUT9']),
+    ]);
+
+    $this->get(route('whatsapp.chats'))->assertOk()->assertSee('Grace Wanjiru')->assertSee('Can I swap Sunday?');
+
+    Livewire::test('pages::whatsapp.chats')
+        ->call('open', $member->id)
+        ->set('reply', 'Yes, swap with Faith')
+        ->call('send')
+        ->assertHasNoErrors()
+        ->assertSee('Yes, swap with Faith');
+
+    expect(WhatsappMessage::where('direction', 'in')->whereNull('read_at')->count())->toBe(0)
+        ->and(WhatsappMessage::where('direction', 'out')->value('chat_id'))->toBe('254712345678@c.us'); // reuses their chat
+});
+
+test('only admins can open the chats', function () {
+    $this->actingAs(User::factory()->create())->get(route('whatsapp.chats'))->assertForbidden();
 });

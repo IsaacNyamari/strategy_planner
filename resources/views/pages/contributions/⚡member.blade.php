@@ -35,6 +35,23 @@ new class extends Component {
         unset($this->statement);
     }
 
+    public function sendReminder(): void
+    {
+        $this->authorize('manage-whatsapp');
+
+        $balance = $this->statement['totals']['balance'];
+        $text = "Hello {$this->member->name}, greetings from the ".config('worship.team_name').'. '
+            .($balance > 0
+                ? "This is a gentle reminder that your contributions balance for {$this->year} is ".ContributionLedger::money($balance).'. Thank you and God bless!'
+                : "Thank you, your contributions for {$this->year} are up to date. God bless!");
+
+        $result = app(\App\WhatsApp\WhatsAppSender::class)->sendToMember($this->member, $text, auth()->user());
+
+        $result->status === 'failed'
+            ? \Flux\Flux::toast(variant: 'danger', text: $result->error ?? 'Not sent.')
+            : \Flux\Flux::toast(variant: 'success', text: 'Sent to '.$this->member->name.'. Replies appear in WhatsApp chats.');
+    }
+
     #[Computed]
     public function statement(): array
     {
@@ -89,9 +106,15 @@ new class extends Component {
                                 ? "This is a gentle reminder that your contributions balance for {$year} is ".$money($st['totals']['balance']).". Thank you and God bless!"
                                 : "Thank you, your contributions for {$year} are up to date. God bless!");
                     @endphp
-                    <flux:button icon="chat-bubble-left-ellipsis" :href="$member->whatsappUrl($reminder)" target="_blank" title="Opens WhatsApp with a pre-written message you can edit before sending">
-                        {{ $st['totals']['balance'] > 0 ? 'WhatsApp reminder' : 'WhatsApp thank-you' }}
-                    </flux:button>
+                    <flux:dropdown>
+                        <flux:button icon="chat-bubble-left-ellipsis" icon:trailing="chevron-down">{{ $st['totals']['balance'] > 0 ? 'WhatsApp reminder' : 'WhatsApp thank-you' }}</flux:button>
+                        <flux:menu>
+                            @can('manage-whatsapp')
+                                <flux:menu.item icon="paper-airplane" wire:click="sendReminder" wire:confirm="Send this message to {{ $member->name }} from the team WhatsApp number?">Send from team number</flux:menu.item>
+                            @endcan
+                            <flux:menu.item icon="arrow-top-right-on-square" :href="$member->whatsappUrl($reminder)" target="_blank">Open in my WhatsApp</flux:menu.item>
+                        </flux:menu>
+                    </flux:dropdown>
                 @endif
                 <flux:button icon="arrow-down-tray" :href="route('exports.statement', ['member' => $member, 'year' => $year])">Statement PDF</flux:button>
                 <flux:button variant="primary" icon="plus" x-on:click="$dispatch('record-payment', { memberId: {{ $member->id }}, year: {{ $year }} })">Record payment</flux:button>

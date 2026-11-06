@@ -452,6 +452,11 @@ new #[Title('Team members')] class extends Component {
                             <flux:button size="sm" variant="ghost" icon="ellipsis-vertical" aria-label="Member actions" />
                             <flux:menu>
                                 <flux:menu.item icon="pencil-square" wire:click="edit({{ $member->id }})">Edit</flux:menu.item>
+                                @if ($member->phone)
+                                    @can('manage-whatsapp')
+                                        <flux:menu.item icon="chat-bubble-oval-left-ellipsis" :href="route('whatsapp.chats', ['member' => $member->id])" wire:navigate>Message (from team number)</flux:menu.item>
+                                    @endcan
+                                @endif
                                 <flux:menu.item icon="banknotes" :href="route('contributions.member', $member)" wire:navigate>Contributions</flux:menu.item>
                                 <flux:menu.item icon="clipboard-document-check" wire:click="openProbation({{ $member->id }})">Probation &amp; notes</flux:menu.item>
                                 <flux:menu.item icon="calendar-days" wire:click="manageAvailability({{ $member->id }})">Unavailable dates</flux:menu.item>

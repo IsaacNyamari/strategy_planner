@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // WhatsApp (WAHA): link the team number, pick groups/channels, message log.
     Route::livewire('whatsapp', 'pages::whatsapp.index')->middleware('can:manage-whatsapp')->name('whatsapp');
+    Route::livewire('whatsapp/chats', 'pages::whatsapp.chats')->middleware('can:manage-whatsapp')->name('whatsapp.chats');
 
     // Deploy the latest GitHub code from the app (admins only).
     Route::middleware('can:deploy')->group(function () {

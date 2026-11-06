@@ -77,7 +77,7 @@ class Waha
             if ($webhookUrl) {
                 $config['webhooks'] = [[
                     'url' => $webhookUrl,
-                    'events' => ['message.ack', 'session.status'],
+                    'events' => ['message', 'message.ack', 'session.status'],
                     'hmac' => ['key' => (string) config('worship.whatsapp.webhook_secret')],
                     'retries' => ['policy' => 'constant', 'delaySeconds' => 5, 'attempts' => 3],
                 ]];
@@ -208,6 +208,57 @@ class Waha
             'caption' => $caption,
             'file' => ['mimetype' => $mimetype, 'filename' => $filename, 'data' => base64_encode($content)],
         ])));
+    }
+
+    // --- One-to-one chats -------------------------------------------------------
+
+    /**
+     * The chat id to message a phone number, or null if it isn't on WhatsApp.
+     *
+     * @throws WahaException
+     */
+    public function chatIdFor(string $phone): ?string
+    {
+        $digits = ltrim((string) Phone::normalize($phone), '+');
+        if ($digits === '') {
+            return null;
+        }
+
+        $data = $this->json($this->http('get', '/api/contacts/check-exists', ['phone' => $digits, 'session' => $this->sessionName()]));
+
+        return ($data['numberExists'] ?? false) ? ($this->id($data['chatId'] ?? null) ?? $digits.'@c.us') : null;
+    }
+
+    /** Phone number (international, with +) behind a hidden @lid id, if WhatsApp shares it. */
+    public function phoneForLid(string $lid): ?string
+    {
+        try {
+            $data = $this->json($this->http('get', '/api/'.$this->sessionName().'/lids/'.rawurlencode($lid)));
+        } catch (WahaException) {
+            return null;
+        }
+
+        $pn = $this->id($data['pn'] ?? null);
+
+        return $pn ? '+'.strtok($pn, '@') : null;
+    }
+
+    /** Show "typing…" for a moment before sending, as WAHA recommends. */
+    public function typing(string $chatId, int $seconds = 2): void
+    {
+        try {
+            $this->http('post', '/api/'.$this->sessionName().'/presence', ['chatId' => $chatId, 'presence' => 'typing']);
+            sleep($seconds);
+            $this->http('post', '/api/'.$this->sessionName().'/presence', ['chatId' => $chatId, 'presence' => 'paused']);
+        } catch (WahaException) {
+            // Presence is cosmetic; never block a send on it.
+        }
+    }
+
+    /** @throws WahaException */
+    public function sendSeen(string $chatId): void
+    {
+        $this->http('post', '/api/sendSeen', ['session' => $this->sessionName(), 'chatId' => $chatId]);
     }
 
     // --- Internals ------------------------------------------------------------------------

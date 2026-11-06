@@ -53,8 +53,13 @@
             @if (Gate::any(['deploy', 'manage-whatsapp']))
                 <flux:sidebar.group :heading="__('Admin')" class="grid">
                     @can('manage-whatsapp')
+                        @php $unreadChats = \App\Models\WhatsappMessage::where('direction', 'in')->whereNull('read_at')->whereNotNull('member_id')->count(); @endphp
+                        <flux:sidebar.item icon="chat-bubble-oval-left-ellipsis" :href="route('whatsapp.chats')"
+                            :current="request()->routeIs('whatsapp.chats')" :badge="$unreadChats ?: null" wire:navigate>
+                            {{ __('Chats') }}
+                        </flux:sidebar.item>
                         <flux:sidebar.item icon="chat-bubble-left-right" :href="route('whatsapp')"
-                            :current="request()->routeIs('whatsapp*')" wire:navigate>
+                            :current="request()->routeIs('whatsapp')" wire:navigate>
                             {{ __('WhatsApp') }}
                         </flux:sidebar.item>
                     @endcan
