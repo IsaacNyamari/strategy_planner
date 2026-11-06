@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Keep the deploy log readable while a deployment has the site in maintenance mode.
         $middleware->preventRequestsDuringMaintenance(except: ['deployments/status']);
+
+        // WAHA webhooks are verified by HMAC signature instead of a CSRF token.
+        $middleware->validateCsrfTokens(except: ['webhooks/waha']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

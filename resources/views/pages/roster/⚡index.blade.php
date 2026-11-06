@@ -386,6 +386,10 @@ new #[Title('Ministering roster')] class extends Component {
                     <flux:menu.heading>{{ $this->start->format('F Y') }} roster</flux:menu.heading>
                     <flux:menu.item icon="document-text" :href="route('exports.roster', ['format' => 'pdf', 'month' => $this->start->format('Y-m')])">PDF</flux:menu.item>
                     <flux:menu.item icon="table-cells" :href="route('exports.roster', ['format' => 'xlsx', 'month' => $this->start->format('Y-m')])">Excel</flux:menu.item>
+                    @can('send-whatsapp')
+                        <flux:menu.separator />
+                        <flux:menu.item icon="chat-bubble-left-right" x-on:click="$dispatch('whatsapp-share', { type: 'roster', month: '{{ $this->start->format('Y-m') }}' })">Send to WhatsApp</flux:menu.item>
+                    @endcan
                 </flux:menu>
             </flux:dropdown>
             <flux:button icon="sparkles" wire:click="$set('announcement', '')" x-on:click="$flux.modal('announcement').show()">AI announcement</flux:button>
@@ -587,8 +591,13 @@ new #[Title('Ministering roster')] class extends Component {
                     </form>
                     <flux:error name="addMemberId" />
 
-                    <div class="flex justify-between">
-                        <flux:button size="sm" icon="sparkles" wire:click="autoFill">Auto-fill free members</flux:button>
+                    <div class="flex flex-wrap justify-between gap-2">
+                        <div class="flex gap-2">
+                            <flux:button size="sm" icon="sparkles" wire:click="autoFill">Auto-fill free members</flux:button>
+                            @can('send-whatsapp')
+                                <flux:button size="sm" icon="chat-bubble-left-right" x-on:click="$flux.modal('manage').close(); $dispatch('whatsapp-share', { type: 'meeting', id: {{ $s->id }} })">Announce on WhatsApp</flux:button>
+                            @endcan
+                        </div>
                         <flux:button size="sm" variant="danger" icon="trash" wire:click="deleteService({{ $s->id }})" wire:confirm="Remove this service from the roster?">Delete service</flux:button>
                     </div>
                 </div>
@@ -664,9 +673,17 @@ new #[Title('Ministering roster')] class extends Component {
             @if ($announcement)
                 <div wire:loading.remove wire:target="draftAnnouncement" x-data="{ copied: false }" class="space-y-2">
                     <flux:textarea wire:model="announcement" rows="14" />
-                    <flux:button size="sm" icon="clipboard" x-on:click="navigator.clipboard.writeText($wire.announcement); copied = true; setTimeout(() => copied = false, 2000)">
-                        <span x-text="copied ? 'Copied!' : 'Copy to clipboard'"></span>
-                    </flux:button>
+                    <div class="flex flex-wrap gap-2">
+                        <flux:button size="sm" icon="clipboard" x-on:click="navigator.clipboard.writeText($wire.announcement); copied = true; setTimeout(() => copied = false, 2000)">
+                            <span x-text="copied ? 'Copied!' : 'Copy to clipboard'"></span>
+                        </flux:button>
+                        @can('send-whatsapp')
+                            <flux:button size="sm" variant="primary" icon="chat-bubble-left-right"
+                                x-on:click="$flux.modal('announcement').close(); $dispatch('whatsapp-share', { type: 'announcement', month: '{{ $this->start->format('Y-m') }}', text: $wire.announcement })">
+                                Send to WhatsApp
+                            </flux:button>
+                        @endcan
+                    </div>
                 </div>
             @endif
         </div>

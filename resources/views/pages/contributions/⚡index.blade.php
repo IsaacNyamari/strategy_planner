@@ -258,6 +258,10 @@ new #[Title('Contributions')] class extends Component {
                     <flux:menu.separator />
                     <flux:menu.heading>{{ $year }} payments ledger</flux:menu.heading>
                     <flux:menu.item icon="table-cells" :href="route('exports.payments', ['format' => 'xlsx', 'year' => $year])">Excel</flux:menu.item>
+                    @can('send-whatsapp')
+                        <flux:menu.separator />
+                        <flux:menu.item icon="chat-bubble-left-right" x-on:click="$dispatch('whatsapp-share', { type: 'contributions', year: {{ $year }} })">Send totals to WhatsApp</flux:menu.item>
+                    @endcan
                 </flux:menu>
             </flux:dropdown>
             <flux:button variant="primary" icon="plus" x-on:click="$dispatch('record-payment', { year: {{ $year }} })">Record payment</flux:button>
@@ -407,6 +411,9 @@ new #[Title('Contributions')] class extends Component {
                                 <flux:menu.item icon="pencil-square" wire:click="editSpecial({{ $s->id }})">Edit</flux:menu.item>
                                 <flux:menu.item icon="document-text" :href="route('exports.special', ['special' => $s, 'format' => 'pdf'])">Download PDF</flux:menu.item>
                                 <flux:menu.item icon="table-cells" :href="route('exports.special', ['special' => $s, 'format' => 'xlsx'])">Download Excel</flux:menu.item>
+                                @can('send-whatsapp')
+                                    <flux:menu.item icon="chat-bubble-left-right" x-on:click="$dispatch('whatsapp-share', { type: 'arising', id: {{ $s->id }} })">Announce on WhatsApp</flux:menu.item>
+                                @endcan
                                 <flux:menu.item :icon="$s->is_open ? 'lock-closed' : 'lock-open'" wire:click="toggleSpecial({{ $s->id }})">{{ $s->is_open ? 'Close' : 'Reopen' }}</flux:menu.item>
                                 <flux:menu.separator />
                                 <flux:menu.item icon="trash" variant="danger" wire:click="deleteSpecial({{ $s->id }})" wire:confirm="Delete {{ $s->title }} and all its payments?">Delete</flux:menu.item>

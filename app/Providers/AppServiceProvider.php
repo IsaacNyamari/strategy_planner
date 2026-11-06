@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Deployment\Deployer;
 use App\Models\User;
+use App\Models\WhatsappTarget;
+use App\WhatsApp\Waha;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +33,11 @@ class AppServiceProvider extends ServiceProvider
 
         // Only the admins listed in WEB_DEPLOY_ADMINS may deploy from the app.
         Gate::define('deploy', fn (User $user) => app(Deployer::class)->allows($user));
+
+        // WhatsApp: admins link the number and pick groups/channels; any team user can send.
+        Gate::define('manage-whatsapp', fn (User $user) => app(Waha::class)->enabled()
+            && in_array(strtolower($user->email), config('worship.admins', []), true));
+        Gate::define('send-whatsapp', fn (User $user) => app(Waha::class)->enabled() && WhatsappTarget::exists());
 
         // Local development behind an HTTPS preview tunnel (localhost.run, Pinggy...):
         // the tunnel doesn't always send X-Forwarded-Proto, so force https for

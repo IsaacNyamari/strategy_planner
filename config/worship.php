@@ -23,6 +23,13 @@ return [
     // How many backup ministers join the lead minister at each service.
     'backups_per_service' => (int) env('WORSHIP_BACKUPS_PER_SERVICE', 3),
 
+    // Team admins (comma-separated emails): manage WhatsApp linking and targets.
+    // Defaults to the deploy admins so one list covers both.
+    'admins' => array_values(array_filter(array_map(
+        fn ($email) => strtolower(trim($email)),
+        explode(',', (string) env('ADMIN_EMAILS', env('WEB_DEPLOY_ADMINS', ''))),
+    ))),
+
     // "Deploy" button (Deployments page). Off unless enabled on the server by
     // deploy/install-web-deploy.sh, and only for the listed admin emails.
     'deploy' => [
@@ -33,6 +40,18 @@ return [
         ))),
         'command' => env('WEB_DEPLOY_COMMAND', 'sudo -n /usr/local/bin/strategy-planner-deploy'),
         'repository' => env('WEB_DEPLOY_REPOSITORY', 'https://github.com/IsaacNyamari/strategy_planner'),
+    ],
+
+    // WhatsApp via a self-hosted WAHA server (https://waha.devlike.pro), reachable
+    // only from this server. Installed by deploy/install-waha.sh.
+    'whatsapp' => [
+        'enabled' => (bool) env('WHATSAPP_ENABLED', false),
+        'url' => rtrim((string) env('WAHA_URL', 'http://127.0.0.1:3100'), '/'),
+        'api_key' => env('WAHA_API_KEY'),
+        'session' => env('WAHA_SESSION', 'default'),
+        'number' => env('WHATSAPP_NUMBER'), // the team number to link, e.g. 0711777992
+        'webhook_secret' => env('WAHA_WEBHOOK_SECRET'),
+        'timeout' => (int) env('WAHA_TIMEOUT', 30),
     ],
 
     'gemini' => [

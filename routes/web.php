@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DeploymentStatusController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\WahaWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -17,6 +18,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('songs', 'pages::songs.index')->name('songs');
     Route::livewire('contributions', 'pages::contributions.index')->name('contributions');
     Route::livewire('contributions/members/{member}', 'pages::contributions.member')->name('contributions.member');
+
+    // WhatsApp (WAHA): link the team number, pick groups/channels, message log.
+    Route::livewire('whatsapp', 'pages::whatsapp.index')->middleware('can:manage-whatsapp')->name('whatsapp');
 
     // Deploy the latest GitHub code from the app (admins only).
     Route::middleware('can:deploy')->group(function () {
@@ -41,3 +45,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+
+// WAHA delivery receipts / session status (signed with an HMAC, no login).
+Route::post('webhooks/waha', WahaWebhookController::class)->name('webhooks.waha');

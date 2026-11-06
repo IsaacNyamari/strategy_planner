@@ -200,6 +200,9 @@ new #[Title('Uniforms')] class extends Component {
                         <flux:menu.heading>{{ $m->format('F Y') }}</flux:menu.heading>
                         <flux:menu.item icon="document-text" :href="route('exports.uniforms', ['format' => 'pdf', 'month' => $m->format('Y-m')])">PDF</flux:menu.item>
                         <flux:menu.item icon="table-cells" :href="route('exports.uniforms', ['format' => 'xlsx', 'month' => $m->format('Y-m')])">Excel</flux:menu.item>
+                        @can('send-whatsapp')
+                            <flux:menu.item icon="chat-bubble-left-right" x-on:click="$dispatch('whatsapp-share', { type: 'uniforms', month: '{{ $m->format('Y-m') }}' })">Send to WhatsApp</flux:menu.item>
+                        @endcan
                     @endforeach
                 </flux:menu>
             </flux:dropdown>

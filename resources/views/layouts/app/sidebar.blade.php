@@ -50,14 +50,22 @@
                     {{ __('Songs & hymns') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
-            @can('deploy')
+            @if (Gate::any(['deploy', 'manage-whatsapp']))
                 <flux:sidebar.group :heading="__('Admin')" class="grid">
-                    <flux:sidebar.item icon="rocket-launch" :href="route('deployments')"
-                        :current="request()->routeIs('deployments*')" wire:navigate>
-                        {{ __('Deployments') }}
-                    </flux:sidebar.item>
+                    @can('manage-whatsapp')
+                        <flux:sidebar.item icon="chat-bubble-left-right" :href="route('whatsapp')"
+                            :current="request()->routeIs('whatsapp*')" wire:navigate>
+                            {{ __('WhatsApp') }}
+                        </flux:sidebar.item>
+                    @endcan
+                    @can('deploy')
+                        <flux:sidebar.item icon="rocket-launch" :href="route('deployments')"
+                            :current="request()->routeIs('deployments*')" wire:navigate>
+                            {{ __('Deployments') }}
+                        </flux:sidebar.item>
+                    @endcan
                 </flux:sidebar.group>
-            @endcan
+            @endif
         </flux:sidebar.nav>
 
         <flux:spacer />
@@ -111,6 +119,10 @@
     </flux:header>
 
     {{ $slot }}
+
+    @can('send-whatsapp')
+        <livewire:whatsapp-share />
+    @endcan
 
     @persist('toast')
         <flux:toast.group>
