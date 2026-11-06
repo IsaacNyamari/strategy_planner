@@ -161,7 +161,9 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Public sign-up. Turn off (ALLOW_REGISTRATION=false) once the team's
+        // accounts exist, so strangers can't register on the live site.
+        ...(env('ALLOW_REGISTRATION', true) ? [Features::registration()] : []),
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([
