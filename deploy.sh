@@ -36,6 +36,14 @@ finish() {
 }
 trap finish EXIT
 
+# Commands below run as root; make sure the web server can still write
+# storage/ (logs, cache, sessions) even if a previous run left root-owned files.
+fix_permissions() {
+    chown -R "$WEB_USER":"$WEB_USER" storage bootstrap/cache
+    chmod -R ug+rwX storage bootstrap/cache
+}
+fix_permissions
+
 step "Maintenance mode on"
 php artisan down --retry=15 --refresh=15 >/dev/null 2>&1 && in_maintenance=1 || true
 
@@ -69,8 +77,7 @@ php artisan view:cache
 php artisan event:cache
 
 step "Fixing permissions"
-chown -R "$WEB_USER":"$WEB_USER" storage bootstrap/cache
-chmod -R ug+rwX storage bootstrap/cache
+fix_permissions
 
 step "Reloading PHP"
 for svc in $(systemctl list-units --type=service --no-legend 'php*-fpm.service' 2>/dev/null | awk '{print $1}'); do
