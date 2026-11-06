@@ -55,7 +55,11 @@ case "${1:-}" in
 
         # Hand the job to systemd as its own unit, fully detached from the web
         # server (deploy.sh reloads PHP-FPM, which must not take the job with it).
+        # systemd jobs start with a nearly empty environment; give it the basics.
         systemd-run --quiet --collect --unit="strategy-planner-deploy-$(date +%s)" \
+            --setenv=HOME=/root \
+            --setenv=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            --setenv=COMPOSER_ALLOW_SUPERUSER=1 \
             "$(readlink -f "$0")" _worker "$by" "$started"
         echo "started"
         ;;

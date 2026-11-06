@@ -18,6 +18,16 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BRANCH="${1:-main}"
 WEB_USER="${WEB_USER:-www-data}"
 
+# Don't depend on the caller's environment: the Deploy button runs this from a
+# systemd job that has no HOME, and Composer/npm refuse to work without one.
+HOME="${HOME:-$(getent passwd "$(id -un)" | cut -d: -f6)}"
+HOME="${HOME:-/root}"
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin${PATH:+:$PATH}"
+export HOME PATH
+export COMPOSER_HOME="${COMPOSER_HOME:-$HOME/.config/composer}"
+export COMPOSER_ALLOW_SUPERUSER=1 # deploys run as root by design
+export npm_config_cache="${npm_config_cache:-$HOME/.npm}"
+
 # Everything lives in main(): bash reads the whole function before running it,
 # so it is safe when this deploy pulls a new version of deploy.sh itself.
 main() {
