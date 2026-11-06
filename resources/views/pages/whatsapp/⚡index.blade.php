@@ -24,6 +24,15 @@ new #[Title('WhatsApp')] class extends Component {
 
     public function mount(): void
     {
+        // Keep the session's webhook up to date (e.g. incoming chats added later).
+        try {
+            if (app(Waha::class)->syncWebhook(route('webhooks.waha'))) {
+                Flux::toast(text: 'WhatsApp webhook updated: incoming messages now reach the app.');
+            }
+        } catch (WahaException) {
+            // refreshStatus() below shows the connection problem.
+        }
+
         $this->refreshStatus();
     }
 

@@ -75,12 +75,7 @@ class Waha
             $config = [];
 
             if ($webhookUrl) {
-                $config['webhooks'] = [[
-                    'url' => $webhookUrl,
-                    'events' => ['message', 'message.ack', 'session.status'],
-                    'hmac' => ['key' => (string) config('worship.whatsapp.webhook_secret')],
-                    'retries' => ['policy' => 'constant', 'delaySeconds' => 5, 'attempts' => 3],
-                ]];
+                $config['webhooks'] = [$this->webhookConfig($webhookUrl)];
             }
 
             $this->json($this->http('post', '/api/sessions', [
@@ -94,6 +89,56 @@ class Waha
         if (in_array($session['status'], ['STOPPED', 'FAILED'], true)) {
             $this->json($this->http('post', '/api/sessions/'.$this->sessionName().'/start'));
         }
+    }
+
+    /** Webhook events the app relies on (incoming chats, receipts, status). */
+    public const WEBHOOK_EVENTS = ['message', 'message.ack', 'session.status'];
+
+    /**
+     * Make sure an existing session's webhook has our URL and every event we
+     * need, so features added later (e.g. incoming chats) start working.
+     * Returns true if the session had to be updated.
+     *
+     * @throws WahaException
+     */
+    public function syncWebhook(string $webhookUrl): bool
+    {
+        $response = $this->http('get', '/api/sessions/'.$this->sessionName());
+
+        if ($response->status() === 404) {
+            return false;
+        }
+
+        $config = (array) ($this->json($response)['config'] ?? []);
+        $hooks = array_values(array_filter((array) ($config['webhooks'] ?? []), 'is_array'));
+        $ours = collect($hooks)->firstWhere('url', $webhookUrl);
+
+        if ($ours && ! array_diff(self::WEBHOOK_EVENTS, (array) ($ours['events'] ?? []))) {
+            return false; // already correct
+        }
+
+        $config['webhooks'] = [
+            ...array_values(array_filter($hooks, fn ($h) => ($h['url'] ?? null) !== $webhookUrl)),
+            $this->webhookConfig($webhookUrl),
+        ];
+
+        $this->json($this->http('put', '/api/sessions/'.$this->sessionName(), [
+            'name' => $this->sessionName(),
+            'config' => $config,
+        ]));
+
+        return true;
+    }
+
+    /** @return array<string, mixed> */
+    protected function webhookConfig(string $url): array
+    {
+        return [
+            'url' => $url,
+            'events' => self::WEBHOOK_EVENTS,
+            'hmac' => ['key' => (string) config('worship.whatsapp.webhook_secret')],
+            'retries' => ['policy' => 'constant', 'delaySeconds' => 5, 'attempts' => 3],
+        ];
     }
 
     /**
@@ -273,9 +318,11 @@ class Waha
     protected function http(string $method, string $uri, array $data = []): Response
     {
         try {
-            return $method === 'get'
-                ? $this->request()->get($uri, $data ?: null)
-                : $this->request()->post($uri, $data);
+            return match ($method) {
+                'get' => $this->request()->get($uri, $data ?: null),
+                'put' => $this->request()->put($uri, $data),
+                default => $this->request()->post($uri, $data),
+            };
         } catch (ConnectionException) {
             throw new WahaException('Cannot reach the WhatsApp service. Is the WAHA container running?');
         }

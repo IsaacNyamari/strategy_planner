@@ -365,3 +365,24 @@ test('admins see conversations, opening one marks it read, and can reply', funct
 test('only admins can open the chats', function () {
     $this->actingAs(User::factory()->create())->get(route('whatsapp.chats'))->assertForbidden();
 });
+
+test('an older session missing the incoming-message event is repaired, a correct one left alone', function () {
+    $url = 'https://planner.example.com/webhooks/waha';
+    Http::fake([
+        WAHA.'/api/sessions/default' => Http::sequence()
+            ->push(['name' => 'default', 'status' => 'WORKING', 'config' => ['webhooks' => [['url' => $url, 'events' => ['message.ack', 'session.status']]]]])
+            ->push(['name' => 'default', 'status' => 'WORKING'])
+            ->push(['name' => 'default', 'status' => 'WORKING', 'config' => ['webhooks' => [['url' => $url, 'events' => ['message', 'message.ack', 'session.status']]]]]),
+    ]);
+    $waha = app(Waha::class);
+
+    expect($waha->syncWebhook($url))->toBeTrue();
+    Http::assertSent(function (Request $r) use ($url) {
+        $hooks = json_decode($r->body(), true)['config']['webhooks'] ?? [];
+
+        return $r->method() === 'PUT' && count($hooks) === 1 && $hooks[0]['url'] === $url
+            && in_array('message', $hooks[0]['events'], true) && $hooks[0]['hmac']['key'] === 'hook-secret';
+    });
+
+    expect($waha->syncWebhook($url))->toBeFalse(); // already has every event: no update
+});
