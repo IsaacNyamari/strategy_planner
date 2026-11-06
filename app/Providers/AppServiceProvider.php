@@ -26,9 +26,14 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
 
-        // Behind an HTTPS tunnel (e.g. localhost.run) the proxy doesn't always
-        // send X-Forwarded-Proto, so force https for non-local hostnames.
-        if (! app()->runningInConsole() && ! in_array(request()->getHost(), ['localhost', '127.0.0.1', '::1', '[::1]'], true)) {
+        // Local development behind an HTTPS preview tunnel (localhost.run, Pinggy...):
+        // the tunnel doesn't always send X-Forwarded-Proto, so force https for
+        // non-local hostnames. In production the scheme comes from APP_URL / the proxy.
+        if (app()->isLocal() && ! app()->runningInConsole() && ! in_array(request()->getHost(), ['localhost', '127.0.0.1', '::1', '[::1]'], true)) {
+            URL::forceScheme('https');
+        }
+
+        if (str_starts_with((string) config('app.url'), 'https://') && app()->isProduction()) {
             URL::forceScheme('https');
         }
     }
