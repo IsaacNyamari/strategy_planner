@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Deployment\Deployer;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -25,6 +28,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // Only the admins listed in WEB_DEPLOY_ADMINS may deploy from the app.
+        Gate::define('deploy', fn (User $user) => app(Deployer::class)->allows($user));
 
         // Local development behind an HTTPS preview tunnel (localhost.run, Pinggy...):
         // the tunnel doesn't always send X-Forwarded-Proto, so force https for

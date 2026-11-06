@@ -50,6 +50,14 @@
                     {{ __('Songs & hymns') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
+            @can('deploy')
+                <flux:sidebar.group :heading="__('Admin')" class="grid">
+                    <flux:sidebar.item icon="rocket-launch" :href="route('deployments')"
+                        :current="request()->routeIs('deployments*')" wire:navigate>
+                        {{ __('Deployments') }}
+                    </flux:sidebar.item>
+                </flux:sidebar.group>
+            @endcan
         </flux:sidebar.nav>
 
         <flux:spacer />

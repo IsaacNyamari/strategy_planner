@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Honour X-Forwarded-* headers from a tunnel / reverse proxy (HTTPS URLs).
         $middleware->trustProxies(at: '*');
+
+        // Keep the deploy log readable while a deployment has the site in maintenance mode.
+        $middleware->preventRequestsDuringMaintenance(except: ['deployments/status']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

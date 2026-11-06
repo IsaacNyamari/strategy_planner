@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DeploymentStatusController;
 use App\Http\Controllers\ExportController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('songs', 'pages::songs.index')->name('songs');
     Route::livewire('contributions', 'pages::contributions.index')->name('contributions');
     Route::livewire('contributions/members/{member}', 'pages::contributions.member')->name('contributions.member');
+
+    // Deploy the latest GitHub code from the app (admins only).
+    Route::middleware('can:deploy')->group(function () {
+        Route::livewire('deployments', 'pages::deployments.index')->middleware('password.confirm')->name('deployments');
+        Route::get('deployments/status', DeploymentStatusController::class)->name('deployments.status');
+    });
 
     // PDF / Excel downloads
     Route::controller(ExportController::class)

@@ -23,6 +23,18 @@ return [
     // How many backup ministers join the lead minister at each service.
     'backups_per_service' => (int) env('WORSHIP_BACKUPS_PER_SERVICE', 3),
 
+    // "Deploy" button (Deployments page). Off unless enabled on the server by
+    // deploy/install-web-deploy.sh, and only for the listed admin emails.
+    'deploy' => [
+        'enabled' => (bool) env('WEB_DEPLOY_ENABLED', false),
+        'admins' => array_values(array_filter(array_map(
+            fn ($email) => strtolower(trim($email)),
+            explode(',', (string) env('WEB_DEPLOY_ADMINS', '')),
+        ))),
+        'command' => env('WEB_DEPLOY_COMMAND', 'sudo -n /usr/local/bin/strategy-planner-deploy'),
+        'repository' => env('WEB_DEPLOY_REPOSITORY', 'https://github.com/IsaacNyamari/strategy_planner'),
+    ],
+
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
         // Tried in order; the next model is used when one is rate-limited or unavailable.
