@@ -35,8 +35,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('deploy', fn (User $user) => app(Deployer::class)->allows($user));
 
         // WhatsApp: admins link the number and pick groups/channels; any team user can send.
-        Gate::define('manage-whatsapp', fn (User $user) => app(Waha::class)->enabled()
-            && in_array(strtolower($user->email), config('worship.admins', []), true));
+        Gate::define('manage-whatsapp', fn (User $user) => app(Waha::class)->enabled() && $user->isAdmin());
+
+        // Admins create accounts and grant admin (public sign-up is closed).
+        Gate::define('manage-users', fn (User $user) => $user->isAdmin());
         Gate::define('send-whatsapp', fn (User $user) => app(Waha::class)->enabled() && WhatsappTarget::exists());
 
         // Local development behind an HTTPS preview tunnel (localhost.run, Pinggy...):

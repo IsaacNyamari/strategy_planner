@@ -21,6 +21,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('contributions', 'pages::contributions.index')->name('contributions');
     Route::livewire('contributions/members/{member}', 'pages::contributions.member')->name('contributions.member');
 
+    Route::livewire('users', 'pages::users.index')->middleware('can:manage-users')->name('users');
+
     // WhatsApp (WAHA): link the team number, pick groups/channels, message log.
     Route::livewire('whatsapp', 'pages::whatsapp.index')->middleware('can:manage-whatsapp')->name('whatsapp');
     Route::livewire('whatsapp/chats', 'pages::whatsapp.chats')->middleware('can:manage-whatsapp')->name('whatsapp.chats');

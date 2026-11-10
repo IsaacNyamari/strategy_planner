@@ -50,8 +50,14 @@
                     {{ __('Songs & hymns') }}
                 </flux:sidebar.item>
             </flux:sidebar.group>
-            @if (Gate::any(['deploy', 'manage-whatsapp']))
+            @if (Gate::any(['deploy', 'manage-whatsapp', 'manage-users']))
                 <flux:sidebar.group :heading="__('Admin')" class="grid">
+                    @can('manage-users')
+                        <flux:sidebar.item icon="user-group" :href="route('users')"
+                            :current="request()->routeIs('users')" wire:navigate>
+                            {{ __('Users') }}
+                        </flux:sidebar.item>
+                    @endcan
                     @can('manage-whatsapp')
                         @php $unreadChats = \App\Models\WhatsappMessage::where('direction', 'in')->whereNull('read_at')->whereNotNull('member_id')->count(); @endphp
                         <flux:sidebar.item icon="chat-bubble-oval-left-ellipsis" :href="route('whatsapp.chats')"

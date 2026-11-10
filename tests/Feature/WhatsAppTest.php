@@ -12,9 +12,11 @@ use App\WhatsApp\MessageTemplates;
 use App\WhatsApp\Waha;
 use App\WhatsApp\WahaException;
 use App\WhatsApp\WhatsAppSender;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
 const WAHA = 'http://127.0.0.1:3100';
@@ -385,4 +387,50 @@ test('an older session missing the incoming-message event is repaired, a correct
     });
 
     expect($waha->syncWebhook($url))->toBeFalse(); // already has every event: no update
+});
+
+// --- Chat history & admin users -------------------------------------------------------------
+
+test('opening a chat imports both sides of the conversation once, like the whatsapp inbox', function () {
+    $this->actingAs(User::factory()->create(['email' => 'admin@example.com']));
+    $member = Member::factory()->create(['name' => 'Isaac', 'phone' => '0759900802']);
+    WhatsappMessage::create(['direction' => 'out', 'member_id' => $member->id, 'chat_id' => '254759900802@c.us', 'target_name' => 'Isaac', 'kind' => 'chat', 'body' => 'Sent from the app', 'status' => 'sent', 'waha_id' => 'APP1']);
+    Http::fake([WAHA.'/api/default/chats/*' => Http::response([
+        ['id' => 'H1', 'fromMe' => false, 'body' => 'Hello team', 'timestamp' => now()->subHour()->timestamp],
+        ['id' => 'H2', 'fromMe' => true, 'body' => 'Hi Isaac (typed on the phone)', 'timestamp' => now()->subMinutes(50)->timestamp, 'ack' => 3],
+        ['id' => 'DIFFERENT-ID', 'fromMe' => true, 'body' => 'Sent from the app', 'timestamp' => now()->timestamp],
+    ])]);
+
+    Livewire::test('pages::whatsapp.chats')->call('open', $member->id)->assertSee('Hello team')->assertSee('typed on the phone');
+    Livewire::test('pages::whatsapp.chats')->call('open', $member->id); // again: nothing new
+
+    expect(WhatsappMessage::where('member_id', $member->id)->count())->toBe(3)
+        ->and(WhatsappMessage::where('waha_id', 'H2')->value('status'))->toBe('read')
+        ->and(WhatsappMessage::where('waha_id', 'H1')->value('direction'))->toBe('in');
+});
+
+test('admins can create users who get a set-password email, and grant admin', function () {
+    Notification::fake();
+    $admin = User::factory()->create(['email' => 'admin@example.com']);
+    $this->actingAs($admin);
+
+    Livewire::test('pages::users.index')
+        ->set('name', 'Mercy Njeri')
+        ->set('email', 'Mercy@Example.com')
+        ->call('create')
+        ->assertHasNoErrors();
+
+    $mercy = User::where('email', 'mercy@example.com')->firstOrFail();
+    expect($mercy->is_admin)->toBeFalse()->and($mercy->email_verified_at)->not->toBeNull();
+    Notification::assertSentTo($mercy, ResetPassword::class);
+
+    Livewire::test('pages::users.index')->call('toggleAdmin', $mercy->id);
+    expect($mercy->fresh()->isAdmin())->toBeTrue();
+
+    Livewire::test('pages::users.index')->call('toggleAdmin', $admin->id); // can't change yourself
+    expect($admin->fresh()->isAdmin())->toBeTrue();
+});
+
+test('non-admins cannot manage users', function () {
+    $this->actingAs(User::factory()->create())->get(route('users'))->assertForbidden();
 });

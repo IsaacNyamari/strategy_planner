@@ -58,7 +58,31 @@ new #[Title('WhatsApp chats')] class extends Component {
     {
         $this->member = $memberId;
         $this->reset('reply');
+        $this->syncHistory(quiet: true);
         $this->markRead();
+    }
+
+    /** Pull this member's recent WhatsApp messages (both sides) into the thread. */
+    public function syncHistory(bool $quiet = false): void
+    {
+        $member = $this->member ? Member::find($this->member) : null;
+
+        if (! $member) {
+            return;
+        }
+
+        try {
+            $count = app(\App\WhatsApp\ChatSync::class)->syncMember($member);
+            if (! $quiet) {
+                Flux::toast(text: $count ? "Imported {$count} ".Str::plural('message', $count).' from WhatsApp.' : 'Already up to date.');
+            }
+        } catch (\App\WhatsApp\WahaException $e) {
+            if (! $quiet) {
+                Flux::toast(variant: 'danger', text: $e->getMessage());
+            }
+        }
+
+        unset($this->conversations, $this->thread);
     }
 
     public function markRead(): void
@@ -94,6 +118,7 @@ new #[Title('WhatsApp chats')] class extends Component {
 
     public function mount(): void
     {
+        $this->syncHistory(quiet: true); // e.g. arriving from a member's "Message" button
         $this->markRead();
     }
 };
@@ -150,7 +175,10 @@ new #[Title('WhatsApp chats')] class extends Component {
                         <flux:heading>{{ $person->name }}</flux:heading>
                         <flux:text size="sm">{{ $person->phoneDisplay() ?: 'no phone number' }}</flux:text>
                     </div>
-                    <flux:button size="xs" variant="ghost" icon="banknotes" :href="route('contributions.member', $person)" wire:navigate>Statement</flux:button>
+                    <div class="flex gap-1">
+                        <flux:button size="xs" variant="ghost" icon="arrow-path" wire:click="syncHistory">Refresh from WhatsApp</flux:button>
+                        <flux:button size="xs" variant="ghost" icon="banknotes" :href="route('contributions.member', $person)" wire:navigate>Statement</flux:button>
+                    </div>
                 </div>
 
                 <div class="flex-1 space-y-2 overflow-y-auto pe-1" x-data x-init="$el.scrollTop = $el.scrollHeight" x-on:livewire:navigated.window="$el.scrollTop = $el.scrollHeight">

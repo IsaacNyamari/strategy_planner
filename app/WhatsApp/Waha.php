@@ -288,6 +288,45 @@ class Waha
         return $pn ? '+'.strtok($pn, '@') : null;
     }
 
+    /**
+     * Recent messages in a chat, both directions (newest first from WAHA).
+     *
+     * @return list<array{id: string, fromMe: bool, body: string, timestamp: int, ack: int|null}>
+     *
+     * @throws WahaException
+     */
+    public function chatMessages(string $chatId, int $limit = 50): array
+    {
+        $data = $this->json($this->http('get', '/api/'.$this->sessionName().'/chats/'.rawurlencode($chatId).'/messages', [
+            'limit' => $limit,
+            'downloadMedia' => 'false',
+        ]));
+
+        $messages = [];
+
+        foreach ($this->items($data) as $m) {
+            $id = $this->id($m['id'] ?? null);
+            if (! $id) {
+                continue;
+            }
+
+            $body = trim((string) ($m['body'] ?? ''));
+            if ($m['hasMedia'] ?? false) {
+                $body = trim('📎 '.($m['media']['filename'] ?? 'attachment').' '.$body);
+            }
+
+            $messages[] = [
+                'id' => $id,
+                'fromMe' => (bool) ($m['fromMe'] ?? false),
+                'body' => $body !== '' ? $body : '(empty message)',
+                'timestamp' => (int) ($m['timestamp'] ?? time()),
+                'ack' => isset($m['ack']) ? (int) $m['ack'] : null,
+            ];
+        }
+
+        return $messages;
+    }
+
     /** Show "typing…" for a moment before sending, as WAHA recommends. */
     public function typing(string $chatId, int $seconds = 2): void
     {
