@@ -45,6 +45,12 @@
                     :current="request()->routeIs('uniforms*')" wire:navigate>
                     {{ __('Uniforms') }}
                 </flux:sidebar.item>
+                @can('schedule-posts')
+                    <flux:sidebar.item icon="megaphone" :href="route('posts')"
+                        :current="request()->routeIs('posts')" wire:navigate>
+                        {{ __('Post scheduler') }}
+                    </flux:sidebar.item>
+                @endcan
                 <flux:sidebar.item icon="musical-note" :href="route('songs')"
                     :current="request()->routeIs('songs*')" wire:navigate>
                     {{ __('Songs & hymns') }}

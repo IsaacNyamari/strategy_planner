@@ -245,6 +245,17 @@ class Waha
     }
 
     /** @throws WahaException */
+    public function sendImage(string $chatId, string $filename, string $content, string $caption = '', string $mimetype = 'image/jpeg'): ?string
+    {
+        return $this->messageId($this->json($this->http('post', '/api/sendImage', [
+            'session' => $this->sessionName(),
+            'chatId' => $chatId,
+            'caption' => $caption,
+            'file' => ['mimetype' => $mimetype, 'filename' => $filename, 'data' => base64_encode($content)],
+        ])));
+    }
+
+    /** @throws WahaException */
     public function sendFile(string $chatId, string $filename, string $content, string $caption = '', string $mimetype = 'application/pdf'): ?string
     {
         return $this->messageId($this->json($this->http('post', '/api/sendFile', [

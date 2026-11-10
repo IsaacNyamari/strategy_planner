@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Team Facebook Page (official Graph API). Leave empty to hide Facebook in the scheduler.
+    'facebook' => [
+        'page_id' => env('FACEBOOK_PAGE_ID'),
+        'page_token' => env('FACEBOOK_PAGE_TOKEN'),
+        'graph_version' => env('FACEBOOK_GRAPH_VERSION', 'v23.0'),
+    ],
+
 ];

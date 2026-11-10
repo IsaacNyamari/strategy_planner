@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Deployment\Deployer;
 use App\Models\User;
 use App\Models\WhatsappTarget;
+use App\Social\FacebookPage;
 use App\WhatsApp\Waha;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -36,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
 
         // WhatsApp: admins link the number and pick groups/channels; any team user can send.
         Gate::define('manage-whatsapp', fn (User $user) => app(Waha::class)->enabled() && $user->isAdmin());
+
+        // Post scheduler: any team user, once there's somewhere to post.
+        Gate::define('schedule-posts', fn (User $user) => (app(Waha::class)->enabled() && WhatsappTarget::exists())
+            || app(FacebookPage::class)->enabled());
 
         // Admins create accounts and grant admin (public sign-up is closed).
         Gate::define('manage-users', fn (User $user) => $user->isAdmin());

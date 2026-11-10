@@ -1,6 +1,9 @@
 <?php
 
 return [
+    // Times people type and see (the app stores UTC).
+    'timezone' => env('WORSHIP_TIMEZONE', 'Africa/Nairobi'),
+
     // Country code used to turn local numbers (0712...) into +254712...
     'phone_country_code' => env('WORSHIP_PHONE_COUNTRY_CODE', '254'),
 
