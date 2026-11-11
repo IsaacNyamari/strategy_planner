@@ -55,7 +55,6 @@ class Access
         ],
         'Communication' => [
             'whatsapp.send' => 'Send announcements to WhatsApp groups/channels',
-            'whatsapp.manage' => 'Link WhatsApp, pick groups and read member chats',
             'posts.manage' => 'Schedule posts',
         ],
         'Administration' => [

@@ -8,6 +8,7 @@ use App\Models\Song;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -168,4 +169,17 @@ test('the secretary runs a meeting: attendance, minutes, actions and the PDF', f
         ->and($meeting->actions()->first()->member_id)->toBe($b->id);
 
     $this->get(route('exports.meeting', $meeting))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+});
+
+test('only admins can open the whatsapp settings and chats', function () {
+    config(['worship.whatsapp.enabled' => true, 'worship.whatsapp.url' => 'http://127.0.0.1:3100', 'worship.whatsapp.api_key' => 'k']);
+    Http::fake(['*' => Http::response([])]);
+
+    $this->actingAs(chairman(Access::CHAIRMAN));
+    $this->get(route('whatsapp'))->assertForbidden();
+    $this->get(route('whatsapp.chats'))->assertForbidden();
+    $this->get(route('dashboard'))->assertDontSee(route('whatsapp.chats'));
+
+    $this->actingAs(chairman(Access::ADMIN));
+    $this->get(route('whatsapp.chats'))->assertOk();
 });

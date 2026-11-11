@@ -42,7 +42,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn (User $user, string $ability) => $user->isPermanentAdmin() && $ability !== 'deploy' ? true : null);
 
         Gate::define('deploy', fn (User $user) => app(Deployer::class)->allows($user));
-        Gate::define('manage-whatsapp', fn (User $user) => app(Waha::class)->enabled() && $user->can('whatsapp.manage'));
+        // WhatsApp settings and member chats: admins only (not a grantable permission).
+        Gate::define('manage-whatsapp', fn (User $user) => app(Waha::class)->enabled() && $user->isAdmin());
         Gate::define('send-whatsapp', fn (User $user) => app(Waha::class)->enabled() && WhatsappTarget::exists() && $user->can('whatsapp.send'));
         Gate::define('schedule-posts', fn (User $user) => $user->can('posts.manage')
             && ((app(Waha::class)->enabled() && WhatsappTarget::exists()) || app(FacebookPage::class)->enabled()));
