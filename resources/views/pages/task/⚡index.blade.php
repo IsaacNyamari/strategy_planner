@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\EisenhowerQuadrant;
 use App\Models\Strategy;
 use App\Models\Task;
@@ -12,7 +13,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-new #[Title('Tasks')] class extends Component {
+new #[Title('Tasks'), Guard('tasks.manage', read: ['sort', 'clearFilters', 'setStatus'])] class extends Component {
     use WithPagination;
 
     #[Url]
@@ -75,6 +76,8 @@ new #[Title('Tasks')] class extends Component {
     {
         return Task::query()
             ->with('objective:id,title,strategy_id', 'objective.strategy:id,title', 'assignee:id,name')
+            // Without tasks.view, people only see the tasks assigned to them.
+            ->when(! auth()->user()->can('tasks.view'), fn ($q) => $q->where('assignee_id', auth()->user()->member?->id ?? 0))
             ->when($this->assignee === 'none', fn ($q) => $q->whereNull('assignee_id'))
             ->when($this->assignee && $this->assignee !== 'none', fn ($q) => $q->where('assignee_id', $this->assignee))
             ->when($this->search, fn ($q) => $q->where(fn ($q) => $q
@@ -156,7 +159,12 @@ new #[Title('Tasks')] class extends Component {
 
     public function setStatus(int $taskId, string $status): void
     {
-        Task::findOrFail($taskId)->update(['status' => TasksEnum::from($status)]);
+        $task = Task::findOrFail($taskId);
+        // Anyone may move their own tasks along; other tasks need tasks.manage.
+        if ($task->assignee_id === null || $task->assignee_id !== auth()->user()->member?->id) {
+            $this->authorize('tasks.manage');
+        }
+        $task->update(['status' => TasksEnum::from($status)]);
     }
 
     public function setQuadrant(int $taskId, string $quadrant): void
@@ -176,7 +184,7 @@ new #[Title('Tasks')] class extends Component {
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <flux:heading size="xl" level="1">Tasks</flux:heading>
-            <flux:subheading>Every task traces back to an objective and strategy.</flux:subheading>
+            <flux:subheading>{{ auth()->user()->can('tasks.view') ? 'Every task traces back to an objective and strategy.' : 'Tasks assigned to you.' }}</flux:subheading>
         </div>
 
         <div class="flex items-center gap-2">
@@ -185,9 +193,11 @@ new #[Title('Tasks')] class extends Component {
                 <flux:button size="sm" icon="squares-2x2" wire:click="$set('view', 'matrix')" :variant="$view === 'matrix' ? 'primary' : 'outline'">Matrix</flux:button>
             </flux:button.group>
 
-            <flux:modal.trigger name="create-task">
-                <flux:button variant="primary" icon="plus">New task</flux:button>
-            </flux:modal.trigger>
+            @can('tasks.manage')
+                <flux:modal.trigger name="create-task">
+                    <flux:button variant="primary" icon="plus">New task</flux:button>
+                </flux:modal.trigger>
+            @endcan
         </div>
     </div>
 
@@ -270,6 +280,7 @@ new #[Title('Tasks')] class extends Component {
                                                 <flux:menu.item :icon="$s->icon()" wire:click="setStatus({{ $task->id }}, '{{ $s->value }}')">{{ $s->label() }}</flux:menu.item>
                                             @endforeach
                                         </flux:menu.group>
+                                        @can('tasks.manage')
                                         <flux:menu.separator />
                                         <flux:menu.group heading="Move to">
                                             @foreach (\App\EisenhowerQuadrant::cases() as $target)
@@ -277,6 +288,7 @@ new #[Title('Tasks')] class extends Component {
                                                 <flux:menu.item wire:click="setQuadrant({{ $task->id }}, '{{ $target->value }}')">{{ $target->label() }}</flux:menu.item>
                                             @endforeach
                                         </flux:menu.group>
+                                        @endcan
                                     </flux:menu>
                                 </flux:dropdown>
                             </div>
@@ -355,8 +367,10 @@ new #[Title('Tasks')] class extends Component {
                                     </flux:dropdown>
                                 </flux:table.cell>
                                 <flux:table.cell align="end">
-                                    <flux:button size="xs" variant="ghost" icon="trash" inset="top bottom" aria-label="Delete task"
-                                        wire:click="delete({{ $task->id }})" wire:confirm="Delete this task?" />
+                                    @can('tasks.manage')
+                                        <flux:button size="xs" variant="ghost" icon="trash" inset="top bottom" aria-label="Delete task"
+                                            wire:click="delete({{ $task->id }})" wire:confirm="Delete this task?" />
+                                    @endcan
                                 </flux:table.cell>
                             </flux:table.row>
                         @endforeach

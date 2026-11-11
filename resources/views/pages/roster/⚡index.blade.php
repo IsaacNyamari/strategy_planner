@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Ai\GeminiException;
 use App\Ai\WorshipAssistant;
 use App\Enums\MinistryRole;
@@ -16,7 +17,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
-new #[Title('Ministering roster')] class extends Component {
+new #[Title('Ministering roster'), Guard('roster.manage', read: ['shiftMonth', 'draftAnnouncement'])] class extends Component {
     #[Url]
     public ?string $month = null; // Y-m
 

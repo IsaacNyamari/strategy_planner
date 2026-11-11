@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Enums\Gender;
 use App\Enums\MemberStatus;
 use App\Models\Member;
@@ -15,7 +16,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-new #[Title('Team members')] class extends Component {
+new #[Title('Team members'), Guard('members.manage')] class extends Component {
     use WithPagination;
 
     #[Url]

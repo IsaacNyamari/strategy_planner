@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Contributions\ContributionLedger;
 use App\Enums\MemberStatus;
 use App\Enums\PaymentMethod;
@@ -19,7 +20,7 @@ use Livewire\Component;
  *   $dispatch('record-payment', { memberId, type, year, month, specialId })
  * It dispatches 'payment-recorded' after saving.
  */
-new class extends Component {
+new #[Guard('contributions.manage')] class extends Component {
     public ?int $memberId = null;
     public string $type = 'monthly';
     public int $year;

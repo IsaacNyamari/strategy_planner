@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Ai\GeminiException;
 use App\Ai\WorshipAssistant;
 use App\Enums\SongCategory;
@@ -14,7 +15,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-new #[Title('Songs & hymns')] class extends Component {
+new #[Title('Songs & hymns'), Guard('songs.manage', read: ['showSong'])] class extends Component {
     use WithPagination;
 
     #[Url]

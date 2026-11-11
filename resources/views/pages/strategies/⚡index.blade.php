@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Models\Strategy;
 use Flux\Flux;
 use Livewire\Attributes\Computed;
@@ -8,7 +9,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-new #[Title('Strategies')] class extends Component {
+new #[Title('Strategies'), Guard('strategies.manage')] class extends Component {
     use WithPagination;
 
     #[Url]

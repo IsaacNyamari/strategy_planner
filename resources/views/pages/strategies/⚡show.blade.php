@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Ai\GeminiException;
 use App\Ai\WorshipAssistant;
 use App\EisenhowerQuadrant;
@@ -14,7 +15,7 @@ use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
-new class extends Component {
+new #[Guard('strategies.manage')] class extends Component {
     public Strategy $strategy;
 
     // Strategy edit form

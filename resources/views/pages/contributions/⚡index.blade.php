@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Contributions\ContributionLedger;
 use App\Enums\PaymentType;
 use App\Models\ContributionRate;
@@ -14,7 +15,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-new #[Title('Contributions')] class extends Component {
+new #[Title('Contributions'), Guard('contributions.manage', read: ['viewSpecial', 'refreshData'])] class extends Component {
     use WithPagination;
 
     #[Url]
@@ -574,5 +575,7 @@ new #[Title('Contributions')] class extends Component {
         @endif
     </flux:modal>
 
-    <livewire:payment-form />
+    @can('contributions.manage')
+        <livewire:payment-form />
+    @endcan
 </div>

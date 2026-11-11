@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Models\Ministration;
 use App\Models\SpecialContribution;
 use App\Models\WhatsappTarget;
@@ -18,7 +19,7 @@ use Livewire\Component;
  *   types: roster{month} | uniforms{month} | meeting{id} | arising{id} | contributions{year} | announcement{month,text}
  * The message is built server-side, can be edited, then sent to the chosen groups/channels.
  */
-new class extends Component {
+new #[Guard('send-whatsapp')] class extends Component {
     public string $type = '';
     public array $params = [];
     public string $title = '';

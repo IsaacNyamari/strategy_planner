@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Contributions\ContributionLedger;
 use App\Enums\PaymentMethod;
 use App\Finance\BalanceSheet;
@@ -14,7 +15,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-new #[Title('Balance sheet')] class extends Component {
+new #[Title('Balance sheet'), Guard('finance.manage', read: ['shiftMonth'])] class extends Component {
     use WithFileUploads;
 
     #[Url]

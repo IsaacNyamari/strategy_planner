@@ -1,0 +1,60 @@
+{
+    "name": "subhashladumor/laravel-optimizer",
+    "description": "All-in-one Laravel optimization suite for speed, caching, database, frontend, and cleanup",
+    "keywords": [
+        "laravel",
+        "optimization",
+        "performance",
+        "cache",
+        "database",
+        "frontend",
+        "cleanup",
+        "speed"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "version":"1.0.0",
+    "authors": [
+        {
+            "name": "Subhash Ladumor",
+            "email": "subhash@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.0|^8.1|^8.2|^8.3|^8.4|^8.5|^8.6",
+        "illuminate/support": "^9.0|^10.0|^11.0|^12.0|^13.0",
+        "illuminate/console": "^9.0|^10.0|^11.0|^12.0|^13.0",
+        "illuminate/database": "^9.0|^10.0|^11.0|^12.0|^13.0",
+        "illuminate/cache": "^9.0|^10.0|^11.0|^12.0|^13.0",
+        "illuminate/http": "^9.0|^10.0|^11.0|^12.0|^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^7.0|^8.0|^9.0",
+        "phpunit/phpunit": "^9.0|^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SubhashLadumor\\LaravelOptimizer\\": "src/"
+        },
+        "files": [
+            "src/Helpers/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SubhashLadumor\\LaravelOptimizer\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SubhashLadumor\\LaravelOptimizer\\OptimizerProServiceProvider"
+            ],
+            "aliases": {
+                "OptimizerPro": "SubhashLadumor\\LaravelOptimizer\\Facades\\OptimizerPro"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -14,76 +14,68 @@
         </flux:sidebar.header>
 
         <flux:sidebar.nav>
-            <flux:sidebar.group :heading="__('Planning')" class="grid">
-                <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
-                    wire:navigate>
-                    {{ __('Dashboard') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="flag" :href="route('strategies')"
-                    :current="request()->routeIs('strategies*')" wire:navigate>
-                    {{ __('Strategies') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="clipboard-document-list" :href="route('tasks')"
-                    :current="request()->routeIs('tasks*')" wire:navigate>
-                    {{ __('Tasks') }}
-                </flux:sidebar.item>
+            @php $me = auth()->user(); @endphp
+            <flux:sidebar.group :heading="__('Me')" class="grid">
+                <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:sidebar.item>
+                <flux:sidebar.item icon="clipboard-document-list" :href="route('tasks')" :current="request()->routeIs('tasks*')" wire:navigate>{{ $me->can('tasks.view') ? __('Tasks') : __('My tasks') }}</flux:sidebar.item>
+                @if ($me->member)
+                    <flux:sidebar.item icon="wallet" :href="route('contributions.member', $me->member)" :current="request()->routeIs('contributions.member') && request()->route('member')?->is($me->member)" wire:navigate>{{ __('My contributions') }}</flux:sidebar.item>
+                @endif
             </flux:sidebar.group>
-            <flux:sidebar.group :heading="__('Ministry')" class="grid">
-                <flux:sidebar.item icon="calendar-days" :href="route('roster')"
-                    :current="request()->routeIs('roster*')" wire:navigate>
-                    {{ __('Roster') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="users" :href="route('members')"
-                    :current="request()->routeIs('members*')" wire:navigate>
-                    {{ __('Members') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="banknotes" :href="route('contributions')"
-                    :current="request()->routeIs('contributions*')" wire:navigate>
-                    {{ __('Contributions') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="scale" :href="route('finance')"
-                    :current="request()->routeIs('finance')" wire:navigate>
-                    {{ __('Balance sheet') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="swatch" :href="route('uniforms')"
-                    :current="request()->routeIs('uniforms*')" wire:navigate>
-                    {{ __('Uniforms') }}
-                </flux:sidebar.item>
-                @can('schedule-posts')
-                    <flux:sidebar.item icon="megaphone" :href="route('posts')"
-                        :current="request()->routeIs('posts')" wire:navigate>
-                        {{ __('Post scheduler') }}
-                    </flux:sidebar.item>
-                @endcan
-                <flux:sidebar.item icon="musical-note" :href="route('songs')"
-                    :current="request()->routeIs('songs*')" wire:navigate>
-                    {{ __('Songs & hymns') }}
-                </flux:sidebar.item>
-            </flux:sidebar.group>
-            @if (Gate::any(['deploy', 'manage-whatsapp', 'manage-users']))
+            @if ($me->canAny(['strategies.view', 'meetings.view']))
+                <flux:sidebar.group :heading="__('Planning')" class="grid">
+                    @can('strategies.view')
+                        <flux:sidebar.item icon="flag" :href="route('strategies')" :current="request()->routeIs('strategies*')" wire:navigate>{{ __('Strategies') }}</flux:sidebar.item>
+                    @endcan
+                    @can('meetings.view')
+                        <flux:sidebar.item icon="presentation-chart-bar" :href="route('meetings')" :current="request()->routeIs('meetings*')" wire:navigate>{{ __('Meetings') }}</flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
+            @if ($me->canAny(['roster.view', 'members.view', 'uniforms.view', 'songs.view', 'schedule-posts']))
+                <flux:sidebar.group :heading="__('Ministry')" class="grid">
+                    @can('roster.view')
+                        <flux:sidebar.item icon="calendar-days" :href="route('roster')" :current="request()->routeIs('roster*')" wire:navigate>{{ __('Roster') }}</flux:sidebar.item>
+                    @endcan
+                    @can('members.view')
+                        <flux:sidebar.item icon="users" :href="route('members')" :current="request()->routeIs('members*')" wire:navigate>{{ __('Members') }}</flux:sidebar.item>
+                    @endcan
+                    @can('songs.view')
+                        <flux:sidebar.item icon="musical-note" :href="route('songs')" :current="request()->routeIs('songs*')" wire:navigate>{{ __('Songs & hymns') }}</flux:sidebar.item>
+                    @endcan
+                    @can('uniforms.view')
+                        <flux:sidebar.item icon="swatch" :href="route('uniforms')" :current="request()->routeIs('uniforms*')" wire:navigate>{{ __('Uniforms') }}</flux:sidebar.item>
+                    @endcan
+                    @can('schedule-posts')
+                        <flux:sidebar.item icon="megaphone" :href="route('posts')" :current="request()->routeIs('posts')" wire:navigate>{{ __('Post scheduler') }}</flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
+            @if ($me->canAny(['contributions.view', 'finance.view']))
+                <flux:sidebar.group :heading="__('Money')" class="grid">
+                    @can('contributions.view')
+                        <flux:sidebar.item icon="banknotes" :href="route('contributions')" :current="request()->routeIs('contributions') || (request()->routeIs('contributions.member') && ! request()->route('member')?->is($me->member))" wire:navigate>{{ __('Contributions') }}</flux:sidebar.item>
+                    @endcan
+                    @can('finance.view')
+                        <flux:sidebar.item icon="scale" :href="route('finance')" :current="request()->routeIs('finance')" wire:navigate>{{ __('Balance sheet') }}</flux:sidebar.item>
+                    @endcan
+                </flux:sidebar.group>
+            @endif
+            @if ($me->canAny(['access.manage', 'audit.view', 'manage-whatsapp', 'deploy']))
                 <flux:sidebar.group :heading="__('Admin')" class="grid">
-                    @can('manage-users')
-                        <flux:sidebar.item icon="user-group" :href="route('users')"
-                            :current="request()->routeIs('users')" wire:navigate>
-                            {{ __('Users') }}
-                        </flux:sidebar.item>
+                    @can('access.manage')
+                        <flux:sidebar.item icon="shield-check" :href="route('access')" :current="request()->routeIs('access')" wire:navigate>{{ __('Admin access') }}</flux:sidebar.item>
+                    @endcan
+                    @can('audit.view')
+                        <flux:sidebar.item icon="finger-print" :href="route('audit')" :current="request()->routeIs('audit')" wire:navigate>{{ __('Audit trail') }}</flux:sidebar.item>
                     @endcan
                     @can('manage-whatsapp')
                         @php $unreadChats = \App\Models\WhatsappMessage::where('direction', 'in')->whereNull('read_at')->whereNotNull('member_id')->count(); @endphp
-                        <flux:sidebar.item icon="chat-bubble-oval-left-ellipsis" :href="route('whatsapp.chats')"
-                            :current="request()->routeIs('whatsapp.chats')" :badge="$unreadChats ?: null" wire:navigate>
-                            {{ __('Chats') }}
-                        </flux:sidebar.item>
-                        <flux:sidebar.item icon="chat-bubble-left-right" :href="route('whatsapp')"
-                            :current="request()->routeIs('whatsapp')" wire:navigate>
-                            {{ __('WhatsApp') }}
-                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="chat-bubble-oval-left-ellipsis" :href="route('whatsapp.chats')" :current="request()->routeIs('whatsapp.chats')" :badge="$unreadChats ?: null" wire:navigate>{{ __('Chats') }}</flux:sidebar.item>
+                        <flux:sidebar.item icon="chat-bubble-left-right" :href="route('whatsapp')" :current="request()->routeIs('whatsapp')" wire:navigate>{{ __('WhatsApp') }}</flux:sidebar.item>
                     @endcan
                     @can('deploy')
-                        <flux:sidebar.item icon="rocket-launch" :href="route('deployments')"
-                            :current="request()->routeIs('deployments*')" wire:navigate>
-                            {{ __('Deployments') }}
-                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="rocket-launch" :href="route('deployments')" :current="request()->routeIs('deployments*')" wire:navigate>{{ __('Deployments') }}</flux:sidebar.item>
                     @endcan
                 </flux:sidebar.group>
             @endif

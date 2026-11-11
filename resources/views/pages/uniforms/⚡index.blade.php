@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Guard;
 use App\Ai\GeminiException;
 use App\Ai\WorshipAssistant;
 use App\Models\Ministration;
@@ -11,7 +12,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Title('Uniforms')] class extends Component {
+new #[Title('Uniforms'), Guard('uniforms.manage')] class extends Component {
     /** @var list<array{name: string, top: string, ladies_bottom: string, men_bottom: string, colors: string, notes: string}> */
     public array $suggestions = [];
 

@@ -23,7 +23,7 @@ class Deployer
     {
         return $this->enabled()
             && $user !== null
-            && in_array(strtolower($user->email), config('worship.deploy.admins', []), true);
+            && ($user->checkPermissionTo('deploy.run') || in_array(strtolower($user->email), config('worship.deploy.admins', []), true));
     }
 
     /**

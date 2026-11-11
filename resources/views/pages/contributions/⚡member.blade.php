@@ -99,7 +99,7 @@ new class extends Component {
                     <flux:heading size="lg" class="w-14 text-center">{{ $year }}</flux:heading>
                     <flux:button size="sm" variant="ghost" icon="chevron-right" wire:click="$set('year', {{ $year + 1 }})" aria-label="Next year" />
                 </div>
-                @if ($member->phone)
+                @if ($member->phone && auth()->user()->can('contributions.view'))
                     @php
                         $reminder = "Hello {$member->name}, greetings from the ".config('worship.team_name').". "
                             .($st['totals']['balance'] > 0
@@ -117,7 +117,9 @@ new class extends Component {
                     </flux:dropdown>
                 @endif
                 <flux:button icon="arrow-down-tray" :href="route('exports.statement', ['member' => $member, 'year' => $year])">Statement PDF</flux:button>
-                <flux:button variant="primary" icon="plus" x-on:click="$dispatch('record-payment', { memberId: {{ $member->id }}, year: {{ $year }} })">Record payment</flux:button>
+                @can('contributions.manage')
+                    <flux:button variant="primary" icon="plus" x-on:click="$dispatch('record-payment', { memberId: {{ $member->id }}, year: {{ $year }} })">Record payment</flux:button>
+                @endcan
             </div>
         </div>
     </div>
@@ -202,5 +204,7 @@ new class extends Component {
         </div>
     </flux:card>
 
-    <livewire:payment-form />
+    @can('contributions.manage')
+        <livewire:payment-form />
+    @endcan
 </div>

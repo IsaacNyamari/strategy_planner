@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Audit\Audit;
 use App\Deployment\Deployer;
+use App\Livewire\GuardHook;
+use App\Models\Member;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\WhatsappTarget;
 use App\Social\FacebookPage;
@@ -14,6 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,19 +37,24 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
 
-        // Only the admins listed in WEB_DEPLOY_ADMINS may deploy from the app.
+        // Roles & permissions (spatie/laravel-permission, see App\Access\Access).
+        // People in ADMIN_EMAILS can never be locked out.
+        Gate::before(fn (User $user, string $ability) => $user->isPermanentAdmin() && $ability !== 'deploy' ? true : null);
+
         Gate::define('deploy', fn (User $user) => app(Deployer::class)->allows($user));
+        Gate::define('manage-whatsapp', fn (User $user) => app(Waha::class)->enabled() && $user->can('whatsapp.manage'));
+        Gate::define('send-whatsapp', fn (User $user) => app(Waha::class)->enabled() && WhatsappTarget::exists() && $user->can('whatsapp.send'));
+        Gate::define('schedule-posts', fn (User $user) => $user->can('posts.manage')
+            && ((app(Waha::class)->enabled() && WhatsappTarget::exists()) || app(FacebookPage::class)->enabled()));
+        Gate::define('manage-users', fn (User $user) => $user->can('access.manage'));
 
-        // WhatsApp: admins link the number and pick groups/channels; any team user can send.
-        Gate::define('manage-whatsapp', fn (User $user) => app(Waha::class)->enabled() && $user->isAdmin());
+        // A member's own statement: their own, or anyone's with contributions.view.
+        Gate::define('view-statement', fn (User $user, Member $member) => $user->can('contributions.view') || $user->member?->id === $member->id);
 
-        // Post scheduler: any team user, once there's somewhere to post.
-        Gate::define('schedule-posts', fn (User $user) => (app(Waha::class)->enabled() && WhatsappTarget::exists())
-            || app(FacebookPage::class)->enabled());
+        Gate::define('view-receipt', fn (User $user, Payment $payment) => $user->can('contributions.view') || $user->can('finance.view') || ($user->member && $user->member->id === $payment->member_id));
 
-        // Admins create accounts and grant admin (public sign-up is closed).
-        Gate::define('manage-users', fn (User $user) => $user->isAdmin());
-        Gate::define('send-whatsapp', fn (User $user) => app(Waha::class)->enabled() && WhatsappTarget::exists());
+        Livewire::componentHook(GuardHook::class);
+        Audit::register();
 
         // Local development behind an HTTPS preview tunnel (localhost.run, Pinggy...):
         // the tunnel doesn't always send X-Forwarded-Proto, so force https for

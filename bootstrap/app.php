@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\LogDownload;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // WAHA webhooks are verified by HMAC signature instead of a CSRF token.
         $middleware->validateCsrfTokens(except: ['webhooks/waha']);
+
+        // Switched-off accounts are signed out; downloads go to the audit trail.
+        $middleware->appendToGroup('web', EnsureUserIsActive::class);
+        $middleware->alias(['log-download' => LogDownload::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
