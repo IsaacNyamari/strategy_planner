@@ -255,6 +255,22 @@ class Waha
         ])));
     }
 
+    /**
+     * An audio clip as a WhatsApp voice note (plays inline). WAHA converts
+     * mp3 / m4a / wav to the opus format WhatsApp needs.
+     *
+     * @throws WahaException
+     */
+    public function sendVoice(string $chatId, string $filename, string $content, string $mimetype = 'audio/mpeg'): ?string
+    {
+        return $this->messageId($this->json($this->http('post', '/api/sendVoice', [
+            'session' => $this->sessionName(),
+            'chatId' => $chatId,
+            'convert' => true,
+            'file' => ['mimetype' => $mimetype, 'filename' => $filename, 'data' => base64_encode($content)],
+        ])));
+    }
+
     /** @throws WahaException */
     public function sendFile(string $chatId, string $filename, string $content, string $caption = '', string $mimetype = 'application/pdf'): ?string
     {

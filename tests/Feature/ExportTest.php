@@ -5,7 +5,6 @@ use App\Models\Member;
 use App\Models\Ministration;
 use App\Models\Song;
 use App\Models\Uniform;
-use App\Models\User;
 use App\Reports\WorshipReports;
 use Carbon\CarbonImmutable;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -31,7 +30,7 @@ test('guests cannot download exports', function (string $route) {
 })->with(['exports.roster', 'exports.uniforms', 'exports.songs']);
 
 test('every export downloads as a real pdf and excel file', function (string $route, string $format) {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     seedMonth();
 
     $response = $this->get(route($route, ['format' => $format, 'month' => '2026-12']));
@@ -49,7 +48,7 @@ test('every export downloads as a real pdf and excel file', function (string $ro
 })->with(['exports.roster', 'exports.uniforms', 'exports.songs'])->with(['pdf', 'xlsx']);
 
 test('unsupported formats are rejected', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     $this->get('/exports/roster.docx')->assertNotFound();
 });
@@ -86,7 +85,7 @@ test('songs export follows the page filters', function () {
 });
 
 test('a month with no services still produces a pdf', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     $this->get(route('exports.roster', ['format' => 'pdf', 'month' => '2030-01']))->assertOk();
 });

@@ -6,7 +6,6 @@ use App\Models\ContributionRate;
 use App\Models\Member;
 use App\Models\Payment;
 use App\Models\SpecialContribution;
-use App\Models\User;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
@@ -97,7 +96,7 @@ test('arising contribution status shows who has paid', function () {
 });
 
 test('several months can be recorded in one payment', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $member = Member::factory()->create();
 
     Livewire::test('payment-form')
@@ -114,7 +113,7 @@ test('several months can be recorded in one payment', function () {
 });
 
 test('recording a payment validates the essentials', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('payment-form')
         ->call('open', null, 'monthly', 2026)
@@ -130,7 +129,7 @@ test('recording a payment validates the essentials', function () {
 });
 
 test('rates and arising contributions are managed from the contributions page', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('pages::contributions.index')
         ->call('editRate', 2027)
@@ -149,7 +148,7 @@ test('rates and arising contributions are managed from the contributions page', 
 });
 
 test('contributions pages render', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $member = Member::factory()->create(['name' => 'Grace Wanjiru', 'phone' => '0712345678']);
     pay($member, 'monthly', 500, 1);
     SpecialContribution::create(['title' => 'Uniform fund', 'amount_per_member' => 2000]);
@@ -165,7 +164,7 @@ test('contributions pages render', function () {
 });
 
 test('contribution exports download', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $member = Member::factory()->create();
     $fund = SpecialContribution::create(['title' => 'Uniform fund', 'amount_per_member' => 2000]);
     pay($member, 'monthly', 500, 1);

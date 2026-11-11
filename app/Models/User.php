@@ -41,6 +41,9 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
+    /** @var array<string, mixed> */
+    protected $attributes = ['is_active' => true];
+
     /**
      * Get the attributes that should be cast.
      *

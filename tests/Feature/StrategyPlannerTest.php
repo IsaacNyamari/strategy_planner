@@ -4,7 +4,6 @@ use App\EisenhowerQuadrant;
 use App\Models\Objective;
 use App\Models\Strategy;
 use App\Models\Task;
-use App\Models\User;
 use App\TasksEnum;
 use Livewire\Livewire;
 
@@ -16,7 +15,7 @@ test('guests are redirected from planner pages', function (string $route) {
 })->with(['strategies', 'strategies.show', 'tasks']);
 
 test('authenticated users can view planner pages', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $task = Task::factory()->create();
     $strategy = $task->objective->strategy;
 
@@ -55,7 +54,7 @@ test('getColor maps progress to colours', function () {
 });
 
 test('a strategy can be created', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('pages::strategies.index')
         ->set('title', 'Grow revenue')
@@ -67,7 +66,7 @@ test('a strategy can be created', function () {
 });
 
 test('strategy title is required', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('pages::strategies.index')
         ->call('create')
@@ -75,7 +74,7 @@ test('strategy title is required', function () {
 });
 
 test('objectives and tasks can be added from the strategy page', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $strategy = Strategy::factory()->create();
 
     $component = Livewire::test('pages::strategies.show', ['strategy' => $strategy])
@@ -102,7 +101,7 @@ test('objectives and tasks can be added from the strategy page', function () {
 });
 
 test('tasks can be created, filtered and updated on the tasks page', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $objective = Objective::factory()->create();
     $other = Task::factory()->notStarted()->create(['title' => 'Unrelated chore', 'eisenhower_quadrant' => EisenhowerQuadrant::ELIMINATE]);
 

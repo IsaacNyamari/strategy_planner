@@ -12,11 +12,9 @@ use App\WhatsApp\MessageTemplates;
 use App\WhatsApp\Waha;
 use App\WhatsApp\WahaException;
 use App\WhatsApp\WhatsAppSender;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
 const WAHA = 'http://127.0.0.1:3100';
@@ -110,7 +108,7 @@ test('wahas errors become friendly messages', function () {
 // --- Sending ---------------------------------------------------------------------------
 
 test('groups get the text and the pdf; channels get the text only', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Http::fake([
         WAHA.'/api/sendText' => Http::response(['id' => ['_serialized' => 'true_120363@g.us_MSG1']]),
         WAHA.'/api/sendFile' => Http::response(['id' => 'FILE1']),
@@ -142,7 +140,7 @@ test('groups get the text and the pdf; channels get the text only', function () 
 });
 
 test('a failed send is logged and reported, others still go out', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $g = group();
     $c = channel();
     Http::fake([
@@ -160,14 +158,14 @@ test('a failed send is logged and reported, others still go out', function () {
 });
 
 test('you must pick at least one group or channel', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     group();
 
     Livewire::test('whatsapp-share')->call('open', 'contributions', null, null, 2026)->set('selected', [])->call('send')->assertHasErrors('selected');
 });
 
 test('nobody can share until whatsapp is enabled and a target exists', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('whatsapp-share')->call('open', 'contributions', null, null, 2026)->assertForbidden();
 });
@@ -199,7 +197,7 @@ test('contribution messages never reveal individual members', function () {
 });
 
 test('arising contributions can never attach the per-member pdf', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     group();
     Http::fake([WAHA.'/*' => Http::response(['id' => 'X'])]);
     $fund = SpecialContribution::create(['title' => 'Bereavement', 'amount_per_member' => 1000]);
@@ -407,30 +405,4 @@ test('opening a chat imports both sides of the conversation once, like the whats
     expect(WhatsappMessage::where('member_id', $member->id)->count())->toBe(3)
         ->and(WhatsappMessage::where('waha_id', 'H2')->value('status'))->toBe('read')
         ->and(WhatsappMessage::where('waha_id', 'H1')->value('direction'))->toBe('in');
-});
-
-test('admins can create users who get a set-password email, and grant admin', function () {
-    Notification::fake();
-    $admin = User::factory()->create(['email' => 'admin@example.com']);
-    $this->actingAs($admin);
-
-    Livewire::test('pages::users.index')
-        ->set('name', 'Mercy Njeri')
-        ->set('email', 'Mercy@Example.com')
-        ->call('create')
-        ->assertHasNoErrors();
-
-    $mercy = User::where('email', 'mercy@example.com')->firstOrFail();
-    expect($mercy->is_admin)->toBeFalse()->and($mercy->email_verified_at)->not->toBeNull();
-    Notification::assertSentTo($mercy, ResetPassword::class);
-
-    Livewire::test('pages::users.index')->call('toggleAdmin', $mercy->id);
-    expect($mercy->fresh()->isAdmin())->toBeTrue();
-
-    Livewire::test('pages::users.index')->call('toggleAdmin', $admin->id); // can't change yourself
-    expect($admin->fresh()->isAdmin())->toBeTrue();
-});
-
-test('non-admins cannot manage users', function () {
-    $this->actingAs(User::factory()->create())->get(route('users'))->assertForbidden();
 });

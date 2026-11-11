@@ -5,7 +5,6 @@ use App\Models\Member;
 use App\Models\MemberUnavailability;
 use App\Models\Ministration;
 use App\Models\Uniform;
-use App\Models\User;
 use App\Roster\RosterGenerator;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -141,7 +140,7 @@ test('uniforms rotate across services', function () {
 });
 
 test('the roster page refuses to double-book a member', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $member = Member::factory()->leader()->create();
     $a = Ministration::factory()->create(['date' => '2026-12-06', 'starts_at' => '09:00', 'ends_at' => '12:00']);
     $a->members()->attach($member->id, ['role' => 'praise_lead']);
@@ -157,7 +156,7 @@ test('the roster page refuses to double-book a member', function () {
 });
 
 test('a special meeting can be created and auto-staffed from the roster page', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Member::factory()->count(2)->leader()->create();
     Member::factory()->count(4)->backupOnly()->create();
 
@@ -176,7 +175,7 @@ test('a special meeting can be created and auto-staffed from the roster page', f
 });
 
 test('roster, members, uniforms and songs pages render', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     config(['worship.gemini.api_key' => null]);
     Member::factory()->leader()->create(['name' => 'Grace Wanjiru']);
 
@@ -214,7 +213,7 @@ test('a warning is raised when nobody can lead a session', function () {
 });
 
 test('giving someone a lead role on the roster page demotes the previous holder', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $first = Member::factory()->leader()->create();
     $second = Member::factory()->leader()->create();
     $service = Ministration::factory()->create(['date' => '2026-12-06']);
@@ -231,7 +230,7 @@ test('giving someone a lead role on the roster page demotes the previous holder'
 });
 
 test('members who cannot lead a session are refused that lead role', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $member = Member::factory()->praiseLeader()->create();
     $service = Ministration::factory()->create(['date' => '2026-12-06']);
 
@@ -246,7 +245,7 @@ test('members who cannot lead a session are refused that lead role', function ()
 });
 
 test('lead eligibility for each session is saved from the members page', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('pages::members.index')
         ->call('newMember')

@@ -15,16 +15,18 @@ use Illuminate\Support\Facades\Storage;
  * @property int $id
  * @property string $body
  * @property string|null $image_path
+ * @property string|null $audio_path
+ * @property string|null $audio_name
  * @property list<int>|null $whatsapp_target_ids
  * @property bool $to_facebook
- * @property CarbonInterface $scheduled_at UTC
+ * @property CarbonInterface $scheduled_at in the app timezone
  * @property string $repeat none | weekly | monthly
  * @property string $status scheduled | sending | sent | partial | failed | cancelled
  * @property list<array{name: string, ok: bool, error: ?string}>|null $results
  * @property CarbonInterface|null $sent_at
  * @property int|null $user_id
  */
-#[Fillable(['body', 'image_path', 'whatsapp_target_ids', 'to_facebook', 'scheduled_at', 'repeat', 'status', 'results', 'sent_at', 'user_id'])]
+#[Fillable(['body', 'image_path', 'audio_path', 'audio_name', 'whatsapp_target_ids', 'to_facebook', 'scheduled_at', 'repeat', 'status', 'results', 'sent_at', 'user_id'])]
 class ScheduledPost extends Model
 {
     public const REPEATS = ['none' => 'Once', 'weekly' => 'Every week', 'monthly' => 'Every month'];
@@ -56,6 +58,11 @@ class ScheduledPost extends Model
     public function localTime(): CarbonInterface
     {
         return $this->scheduled_at->copy()->setTimezone((string) config('worship.timezone'));
+    }
+
+    public function audioUrl(): ?string
+    {
+        return $this->audio_path ? Storage::disk('public')->url($this->audio_path) : null;
     }
 
     public function imageUrl(): ?string

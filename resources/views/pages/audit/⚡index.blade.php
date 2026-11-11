@@ -47,8 +47,8 @@ new #[Title('Audit trail')] class extends Component {
             ->when($this->user !== '', fn ($q) => $this->user === 'system' ? $q->whereNull('user_id') : $q->where('user_id', (int) $this->user))
             ->when($this->event, fn ($q) => $q->where('event', $this->event))
             ->when($this->area, fn ($q) => $q->where('subject_type', $this->area))
-            ->when($this->from, fn ($q) => $q->where('created_at', '>=', \Carbon\CarbonImmutable::parse($this->from, $tz)->startOfDay()->utc()))
-            ->when($this->to, fn ($q) => $q->where('created_at', '<', \Carbon\CarbonImmutable::parse($this->to, $tz)->addDay()->startOfDay()->utc()))
+            ->when($this->from, fn ($q) => $q->where('created_at', '>=', \Carbon\CarbonImmutable::parse($this->from, $tz)->startOfDay()->setTimezone((string) config('app.timezone'))))
+            ->when($this->to, fn ($q) => $q->where('created_at', '<', \Carbon\CarbonImmutable::parse($this->to, $tz)->addDay()->startOfDay()->setTimezone((string) config('app.timezone'))))
             ->latest('id')
             ->paginate(40);
     }

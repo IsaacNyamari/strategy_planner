@@ -7,7 +7,6 @@ use App\Enums\SongLanguage;
 use App\Models\Song;
 use App\Models\Strategy;
 use App\Models\Uniform;
-use App\Models\User;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -50,7 +49,7 @@ test('gemini is reported as unconfigured without a key', function () {
 });
 
 test('uniform suggestions load on the page and can be validated and saved', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Http::fake(['*' => Http::response(geminiReply(['uniforms' => [
         ['name' => 'Royal blue & gold', 'top' => 'Royal blue shirts / blouses', 'ladies_bottom' => 'Gold chiffon skirt', 'men_bottom' => 'Black trousers', 'colors' => 'Royal blue, gold', 'notes' => 'Communion Sunday'],
@@ -79,7 +78,7 @@ test('uniform suggestions load on the page and can be validated and saved', func
 });
 
 test('uniforms page shows a helpful message when ai fails', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Http::fake(['*' => Http::response([], 429)]);
 
     Livewire::test('pages::uniforms.index')
@@ -100,7 +99,7 @@ test('ai lyrics are only kept for public-domain songs', function () {
 });
 
 test('song suggestions can be saved to the library', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Http::fake(['*' => Http::response(geminiReply(['songs' => [
         ['title' => 'Yesu Ni Bwana', 'artist' => 'Traditional', 'category' => 'praise', 'musical_key' => 'C', 'tempo_bpm' => 110, 'time_signature' => '4/4', 'theme' => 'Lordship', 'is_public_domain' => true, 'first_line' => 'Yesu ni Bwana', 'lyrics' => 'Yesu ni Bwana'],
     ]]))]);
@@ -116,7 +115,7 @@ test('song suggestions can be saved to the library', function () {
 });
 
 test('ai strategy breakdown adds objectives and tasks', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $strategy = Strategy::factory()->create();
     Http::fake(['*' => Http::response(geminiReply(['objectives' => [
         ['title' => 'Train two new worship leaders', 'description' => 'Mentorship', 'tasks' => [
@@ -134,7 +133,7 @@ test('ai strategy breakdown adds objectives and tasks', function () {
 });
 
 test('opening the uniforms and songs pages never calls the ai', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Http::fake();
 
     $this->get(route('uniforms'))->assertOk()->assertSee('Generate ideas');
@@ -146,7 +145,7 @@ test('opening the uniforms and songs pages never calls the ai', function () {
 });
 
 test('uniform ideas are generated only on click, and "new ideas" asks again', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Http::fake(['*' => Http::response(geminiReply(['uniforms' => [
         ['name' => 'Ivory & teal', 'top' => 'Ivory tops', 'ladies_bottom' => 'Teal skirt', 'men_bottom' => 'Teal trousers', 'colors' => 'Ivory, teal', 'notes' => 'Easter'],
     ]]))]);

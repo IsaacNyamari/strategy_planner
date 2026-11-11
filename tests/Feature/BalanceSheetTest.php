@@ -6,7 +6,6 @@ use App\Models\CashEntry;
 use App\Models\Member;
 use App\Models\Payment;
 use App\Models\SpecialContribution;
-use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -45,7 +44,7 @@ test('the balance sheet adds money in, takes money out and carries the balance',
 });
 
 test('expenses are recorded with a receipt that can be downloaded', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('pages::finance.index')
         ->call('newEntry', 'out')
@@ -62,7 +61,7 @@ test('expenses are recorded with a receipt that can be downloaded', function () 
 });
 
 test('balance sheet, receipts and the receipts zip download', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $entry = CashEntry::where('category', 'Uniforms')->first();
     Storage::disk('local')->put('cash-receipts/ties.jpg', 'jpeg');
     $entry->update(['receipt_path' => 'cash-receipts/ties.jpg', 'receipt_name' => 'ties.jpg']);
@@ -79,7 +78,7 @@ test('balance sheet, receipts and the receipts zip download', function () {
 });
 
 test('the balance sheet page shows the totals', function () {
-    $this->actingAs(User::factory()->create())
+    $this->actingAs(chairman())
         ->get(route('finance', ['year' => 2026]))
         ->assertOk()->assertSee('Balance in hand')->assertSee('Navy ties')->assertSee('Uniform fund');
 });

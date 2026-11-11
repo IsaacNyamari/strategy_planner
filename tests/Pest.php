@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +48,13 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/** A logged-in team user with the given role (chairman: everything except deployments). */
+function chairman(string $role = 'chairman'): User
+{
+    $user = User::factory()->create();
+    $user->assignRole($role);
+
+    return $user;
 }

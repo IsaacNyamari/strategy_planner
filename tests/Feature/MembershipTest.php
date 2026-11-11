@@ -5,7 +5,6 @@ use App\Enums\MinistryRole;
 use App\Models\Member;
 use App\Models\Ministration;
 use App\Models\Setting;
-use App\Models\User;
 use App\Roster\RosterGenerator;
 use App\Support\Phone;
 use Illuminate\Support\Facades\Cache;
@@ -36,7 +35,7 @@ test('member phone is stored normalised with call, sms and whatsapp links', func
 });
 
 test('the members page requires a valid, unique phone number', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Member::factory()->create(['phone' => '+254700111222']);
 
     $form = fn () => Livewire::test('pages::members.index')
@@ -53,7 +52,7 @@ test('the members page requires a valid, unique phone number', function () {
 });
 
 test('new members start on probation for the team default length', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Setting::set('probation_weeks', '8');
 
     Livewire::test('pages::members.index')
@@ -72,7 +71,7 @@ test('new members start on probation for the team default length', function () {
 });
 
 test('the default probation length can be changed in the app', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('pages::members.index')
         ->set('probationWeeks', 6)
@@ -86,7 +85,7 @@ test('the default probation length can be changed in the app', function () {
 });
 
 test('probation can be extended, then the member confirmed', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     $member = Member::factory()->create(['status' => MemberStatus::PROBATION, 'joined_at' => today()->subWeeks(13), 'probation_ends_at' => today()->subDay()]);
 
     expect($member->probationDue())->toBeTrue();
@@ -137,7 +136,7 @@ test('members on probation can serve as backups but never lead', function () {
 });
 
 test('members list downloads as pdf and excel', function (string $format) {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
     Member::factory()->create(['name' => 'Grace Wanjiru']);
     Member::factory()->probation()->create();
 

@@ -45,6 +45,9 @@ class PostPublisher
         $image = $post->image_path && Storage::disk('public')->exists($post->image_path)
             ? ['name' => basename($post->image_path), 'content' => Storage::disk('public')->get($post->image_path), 'mime' => Storage::disk('public')->mimeType($post->image_path) ?: 'image/jpeg']
             : null;
+        $audio = $post->audio_path && Storage::disk('public')->exists($post->audio_path)
+            ? ['name' => $post->audio_name ?: basename($post->audio_path), 'content' => (string) Storage::disk('public')->get($post->audio_path), 'mime' => Storage::disk('public')->mimeType($post->audio_path) ?: 'audio/mpeg']
+            : null;
 
         foreach (WhatsappTarget::whereIn('id', $post->whatsapp_target_ids ?? [])->orderBy('name')->get() as $target) {
             $log = new WhatsappMessage([
@@ -53,7 +56,7 @@ class PostPublisher
                 'target_name' => $target->name,
                 'kind' => 'scheduled',
                 'body' => $post->body,
-                'attachment' => $image['name'] ?? null,
+                'attachment' => collect([$image['name'] ?? null, $audio['name'] ?? null])->filter()->implode(', ') ?: null,
                 'user_id' => $post->user_id,
             ]);
 
@@ -61,6 +64,9 @@ class PostPublisher
                 $log->waha_id = $image
                     ? $this->waha->sendImage($target->chat_id, $image['name'], (string) $image['content'], $post->body, $image['mime'])
                     : $this->waha->sendText($target->chat_id, $post->body);
+                if ($audio) {
+                    $this->sendAudio($target->chat_id, $audio);
+                }
                 $log->status = 'sent';
                 $results[] = ['name' => 'WhatsApp: '.$target->name, 'ok' => true, 'error' => null];
             } catch (WahaException $e) {
@@ -98,6 +104,23 @@ class PostPublisher
         return true;
     }
 
+    /**
+     * Send the clip as a voice note; if WhatsApp/WAHA can't convert it, send it
+     * as an audio file instead so it still arrives.
+     *
+     * @param  array{name: string, content: string, mime: string}  $audio
+     *
+     * @throws WahaException
+     */
+    protected function sendAudio(string $chatId, array $audio): void
+    {
+        try {
+            $this->waha->sendVoice($chatId, $audio['name'], $audio['content'], $audio['mime']);
+        } catch (WahaException) {
+            $this->waha->sendFile($chatId, $audio['name'], $audio['content'], '', $audio['mime']);
+        }
+    }
+
     /** Weekly / monthly posts: queue the next occurrence. */
     protected function scheduleNext(ScheduledPost $post): void
     {
@@ -109,7 +132,7 @@ class PostPublisher
         $next = $post->repeat === 'weekly' ? $next->addWeek() : $next->addMonthNoOverflow();
 
         $post->replicate(['status', 'results', 'sent_at'])->fill([
-            'scheduled_at' => $next->utc(),
+            'scheduled_at' => $next->setTimezone((string) config('app.timezone')),
             'status' => 'scheduled',
         ])->save();
     }

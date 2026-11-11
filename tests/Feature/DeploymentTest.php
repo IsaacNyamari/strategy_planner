@@ -92,7 +92,7 @@ test('deploying needs a recent password confirmation even from the page', functi
 });
 
 test('non-admins cannot trigger a deploy action', function () {
-    $this->actingAs(User::factory()->create());
+    $this->actingAs(chairman());
 
     Livewire::test('pages::deployments.index')->call('deploy')->assertForbidden();
 });

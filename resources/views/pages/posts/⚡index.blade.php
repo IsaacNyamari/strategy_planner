@@ -23,6 +23,10 @@ new #[Title('Post scheduler')] class extends Component {
     public $image = null;
     public ?string $existingImage = null;
     public bool $removeImage = false;
+    public $audio = null;
+    public ?string $existingAudio = null;
+    public ?string $existingAudioName = null;
+    public bool $removeAudio = false;
     /** @var list<int|string> */
     public array $targets = [];
     public bool $toFacebook = false;
@@ -61,7 +65,7 @@ new #[Title('Post scheduler')] class extends Component {
 
     public function newPost(): void
     {
-        $this->reset('editingId', 'body', 'image', 'existingImage', 'removeImage', 'toFacebook', 'repeat', 'template');
+        $this->reset('editingId', 'body', 'image', 'existingImage', 'removeImage', 'audio', 'existingAudio', 'existingAudioName', 'removeAudio', 'toFacebook', 'repeat', 'template');
         $next = CarbonImmutable::now($this->tz())->addHour()->startOfHour();
         $this->date = $next->toDateString();
         $this->time = $next->format('H:i');
@@ -80,6 +84,10 @@ new #[Title('Post scheduler')] class extends Component {
         $this->image = null;
         $this->existingImage = $post->image_path;
         $this->removeImage = false;
+        $this->audio = null;
+        $this->existingAudio = $post->audio_path;
+        $this->existingAudioName = $post->audio_name;
+        $this->removeAudio = false;
         $this->targets = $post->whatsapp_target_ids ?? [];
         $this->toFacebook = $post->to_facebook;
         $this->repeat = $post->repeat;
@@ -116,6 +124,8 @@ new #[Title('Post scheduler')] class extends Component {
         $this->validate([
             'body' => ['required', 'string', 'max:6000'],
             'image' => ['nullable', 'image', 'max:5120'],
+            // WhatsApp's limit for audio is 16 MB.
+            'audio' => ['nullable', 'file', 'mimes:mp3,m4a,aac,ogg,oga,opus,wav,amr', 'max:16384'],
             'targets' => ['array'],
             'targets.*' => ['integer', 'exists:whatsapp_targets,id'],
             'date' => ['required', 'date'],
@@ -141,12 +151,20 @@ new #[Title('Post scheduler')] class extends Component {
             $imagePath = $this->image->store('scheduled-posts', 'public');
         }
 
+        [$audioPath, $audioName] = $this->removeAudio ? [null, null] : [$this->existingAudio, $this->existingAudioName];
+        if ($this->audio) {
+            $audioPath = $this->audio->store('scheduled-posts/audio', 'public');
+            $audioName = mb_substr($this->audio->getClientOriginalName(), 0, 200);
+        }
+
         ScheduledPost::updateOrCreate(['id' => $this->editingId], [
             'body' => trim($this->body),
             'image_path' => $imagePath,
+            'audio_path' => $audioPath,
+            'audio_name' => $audioName,
             'whatsapp_target_ids' => array_values(array_map('intval', $this->targets)),
             'to_facebook' => $this->toFacebook && $this->facebookEnabled(),
-            'scheduled_at' => $when->utc(),
+            'scheduled_at' => $when->setTimezone((string) config('app.timezone')),
             'repeat' => $this->repeat,
             'status' => 'scheduled',
             'user_id' => $this->editingId ? ScheduledPost::find($this->editingId)?->user_id : auth()->id(),
@@ -183,6 +201,9 @@ new #[Title('Post scheduler')] class extends Component {
         $post = ScheduledPost::whereNotIn('status', ['sending'])->findOrFail($id);
         if ($post->image_path && ! ScheduledPost::where('image_path', $post->image_path)->whereKeyNot($post->id)->exists()) {
             Storage::disk('public')->delete($post->image_path);
+        }
+        if ($post->audio_path && ! ScheduledPost::where('audio_path', $post->audio_path)->whereKeyNot($post->id)->exists()) {
+            Storage::disk('public')->delete($post->audio_path);
         }
         $post->delete();
         unset($this->history, $this->upcoming);
@@ -229,6 +250,13 @@ new #[Title('Post scheduler')] class extends Component {
                         <flux:text size="sm" class="truncate">→ {{ $this->targetNames($post) }}</flux:text>
                     </div>
                     <div class="line-clamp-3 whitespace-pre-line text-sm">{{ $post->body }}</div>
+                    @if ($post->audioUrl())
+                        <div class="flex items-center gap-2 pt-1">
+                            <flux:icon.musical-note variant="mini" class="shrink-0 text-zinc-400" />
+                            <audio controls preload="none" src="{{ $post->audioUrl() }}" class="h-8 max-w-full"></audio>
+                            <span class="truncate text-xs text-zinc-500">{{ $post->audio_name }}</span>
+                        </div>
+                    @endif
                 </div>
                 @if ($post->imageUrl())
                     <img src="{{ $post->imageUrl() }}" alt="" class="size-16 rounded-lg object-cover">
@@ -305,6 +333,22 @@ new #[Title('Post scheduler')] class extends Component {
                     <div class="mt-2 flex items-center gap-2">
                         <img src="{{ Storage::disk('public')->url($existingImage) }}" alt="" class="h-24 rounded-lg object-cover">
                         <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="$set('removeImage', true)">Remove</flux:button>
+                    </div>
+                @endif
+            </flux:field>
+
+            <flux:field>
+                <flux:label>Audio (optional)</flux:label>
+                <flux:description>A song clip or voice announcement — mp3, m4a, ogg, wav, up to 16 MB. Sent on WhatsApp as a voice note after the text{{ $this->facebookEnabled() ? '; Facebook gets the text only' : '' }}.</flux:description>
+                <input type="file" wire:model="audio" accept="audio/*,.mp3,.m4a,.aac,.ogg,.opus,.wav,.amr" class="text-sm">
+                <div wire:loading wire:target="audio" class="text-xs text-zinc-500">Uploading…</div>
+                <flux:error name="audio" />
+                @if ($audio)
+                    <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">🎵 {{ $audio->getClientOriginalName() }}</div>
+                @elseif ($existingAudio && ! $removeAudio)
+                    <div class="mt-2 flex items-center gap-2">
+                        <audio controls preload="none" src="{{ Storage::disk('public')->url($existingAudio) }}" class="h-8"></audio>
+                        <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="$set('removeAudio', true)">Remove</flux:button>
                     </div>
                 @endif
             </flux:field>

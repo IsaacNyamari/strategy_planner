@@ -33,7 +33,7 @@ class ChatSync
                 continue;
             }
 
-            $at = Carbon::createFromTimestamp($m['timestamp']);
+            $at = Carbon::createFromTimestamp($m['timestamp'], (string) config('app.timezone'));
 
             $message = new WhatsappMessage([
                 'direction' => $m['fromMe'] ? 'out' : 'in',
@@ -76,7 +76,7 @@ class ChatSync
             return false;
         }
 
-        $at = Carbon::createFromTimestamp($m['timestamp']);
+        $at = Carbon::createFromTimestamp($m['timestamp'], (string) config('app.timezone'));
 
         return WhatsappMessage::where('member_id', $member->id)->where('direction', 'out')
             ->where('body', $m['body'])
