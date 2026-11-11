@@ -20,7 +20,7 @@
         "livewire/livewire": "^4.1",
         "maatwebsite/excel": "^4.0",
         "spatie/laravel-permission": "*",
-        "subhashladumor/laravel-optimizer": "*"
+        "subhashladumor/laravel-optimizer": "^1.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
