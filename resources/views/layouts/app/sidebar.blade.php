@@ -41,6 +41,10 @@
                     :current="request()->routeIs('contributions*')" wire:navigate>
                     {{ __('Contributions') }}
                 </flux:sidebar.item>
+                <flux:sidebar.item icon="scale" :href="route('finance')"
+                    :current="request()->routeIs('finance')" wire:navigate>
+                    {{ __('Balance sheet') }}
+                </flux:sidebar.item>
                 <flux:sidebar.item icon="swatch" :href="route('uniforms')"
                     :current="request()->routeIs('uniforms*')" wire:navigate>
                     {{ __('Uniforms') }}

@@ -250,6 +250,15 @@ class ExportController extends Controller
      */
     protected function pdf(string $view, array $data, string $orientation, string $filename): Response
     {
+        return response($this->pdfContent($view, $data, $orientation), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    /** @param  array<string, mixed>  $data */
+    protected function pdfContent(string $view, array $data, string $orientation): string
+    {
         $pdf = Pdf::loadView($view, $data)
             ->setPaper('a4', $orientation)
             ->setOption('isFontSubsettingEnabled', true); // embed only used glyphs: ~880 KB -> ~50 KB
@@ -260,7 +269,7 @@ class ExportController extends Controller
         $canvas = $dompdf->getCanvas();
         $canvas->page_text($canvas->get_width() - 90, $canvas->get_height() - 26, 'Page {PAGE_NUM} of {PAGE_COUNT}', $font, 7, [0.63, 0.63, 0.67]);
 
-        return $pdf->download($filename);
+        return (string) $dompdf->output();
     }
 
     /** @param array<string, mixed> $filters */

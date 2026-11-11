@@ -480,6 +480,7 @@ new #[Title('Contributions')] class extends Component {
                                 <flux:table.cell>{{ $p->method->label() }}</flux:table.cell>
                                 <flux:table.cell class="text-zinc-500">{{ $p->reference ?: '—' }}</flux:table.cell>
                                 <flux:table.cell align="end">
+                                    <flux:button size="xs" variant="ghost" icon="receipt-percent" inset="top bottom" :href="route('exports.receipt', $p)" aria-label="Download receipt" title="Download receipt" />
                                     <flux:button size="xs" variant="ghost" icon="trash" inset="top bottom" wire:click="deletePayment({{ $p->id }})" wire:confirm="Delete this payment of {{ $money($p->amount) }}?" aria-label="Delete payment" />
                                 </flux:table.cell>
                             </flux:table.row>
